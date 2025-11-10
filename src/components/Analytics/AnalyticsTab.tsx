@@ -1,30 +1,62 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
 import { CalendarIcon, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-const roomData = [
-  { name: "ICU-101", patients: 2, nurses: 3 },
-  { name: "ICU-102", patients: 1, nurses: 2 },
-  { name: "General-205", patients: 3, nurses: 2 },
-  { name: "Ward-A", patients: 4, nurses: 3 },
-  { name: "Ward-B", patients: 2, nurses: 2 },
-];
+// Mock data generator based on time
+const generateRoomData = (timeIndex: number) => {
+  const variation = Math.sin(timeIndex / 10) * 2;
+  return [
+    { name: "ICU-101", patients: Math.max(1, Math.round(2 + variation)), nurses: Math.max(1, Math.round(3 + variation * 0.5)) },
+    { name: "ICU-102", patients: Math.max(1, Math.round(1 + variation * 0.8)), nurses: Math.max(1, Math.round(2 + variation * 0.3)) },
+    { name: "General-205", patients: Math.max(1, Math.round(3 + variation * 1.2)), nurses: Math.max(1, Math.round(2 + variation * 0.7)) },
+    { name: "Ward-A", patients: Math.max(1, Math.round(4 - variation)), nurses: Math.max(1, Math.round(3 - variation * 0.4)) },
+    { name: "Ward-B", patients: Math.max(1, Math.round(2 + variation * 0.5)), nurses: Math.max(1, Math.round(2 + variation * 0.6)) },
+  ];
+};
 
-const pieData = [
-  { name: "Patients", value: 12, color: "hsl(var(--primary))" },
-  { name: "Nurses", value: 12, color: "hsl(var(--secondary))" },
-];
+const generatePieData = (roomData: any[]) => {
+  const totalPatients = roomData.reduce((sum, room) => sum + room.patients, 0);
+  const totalNurses = roomData.reduce((sum, room) => sum + room.nurses, 0);
+  return [
+    { name: "Patients", value: totalPatients, color: "hsl(var(--primary))" },
+    { name: "Nurses", value: totalNurses, color: "hsl(var(--secondary))" },
+  ];
+};
 
 export default function AnalyticsTab() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedTime, setSelectedTime] = useState({ hours: 12, minutes: 0 });
+  const [fromTime, setFromTime] = useState({ hours: 8, minutes: 0 });
+  const [toTime, setToTime] = useState({ hours: 18, minutes: 0 });
+  const [sliderValue, setSliderValue] = useState([0]);
+
+  // Calculate total 5-minute intervals between from and to time
+  const totalIntervals = useMemo(() => {
+    const fromMinutes = fromTime.hours * 60 + fromTime.minutes;
+    const toMinutes = toTime.hours * 60 + toTime.minutes;
+    return Math.max(0, Math.floor((toMinutes - fromMinutes) / 5));
+  }, [fromTime, toTime]);
+
+  // Calculate current time based on slider position
+  const currentTime = useMemo(() => {
+    const fromMinutes = fromTime.hours * 60 + fromTime.minutes;
+    const currentMinutes = fromMinutes + (sliderValue[0] * 5);
+    return {
+      hours: Math.floor(currentMinutes / 60) % 24,
+      minutes: currentMinutes % 60
+    };
+  }, [sliderValue, fromTime]);
+
+  // Generate data based on current slider position
+  const roomData = useMemo(() => generateRoomData(sliderValue[0]), [sliderValue]);
+  const pieData = useMemo(() => generatePieData(roomData), [roomData]);
 
   return (
     <div className="p-6 space-y-6">
@@ -34,87 +66,151 @@ export default function AnalyticsTab() {
         <p className="text-muted-foreground mt-1">Crowd analysis and occupancy insights</p>
       </div>
 
-      {/* Date and Time Picker */}
+      {/* Date and Time Range Picker */}
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle>Historical Timeline</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Date Picker */}
-            <div className="flex-1 space-y-2">
-              <Label>Select Date</Label>
+        <CardContent className="space-y-6">
+          {/* Date Picker */}
+          <div className="space-y-2">
+            <Label>Select Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Time Range Pickers */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* From Time */}
+            <div className="space-y-2">
+              <Label>From Time</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                  <Button variant="outline" className="w-full justify-start">
+                    <Clock className="mr-2 h-4 w-4" />
+                    {String(fromTime.hours).padStart(2, '0')}:{String(fromTime.minutes).padStart(2, '0')}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => date && setSelectedDate(date)}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
+                <PopoverContent className="w-auto p-4" align="start">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Hours</Label>
+                      <select
+                        value={fromTime.hours}
+                        onChange={(e) => setFromTime({ ...fromTime, hours: parseInt(e.target.value) })}
+                        className="w-full p-2 border rounded-md bg-background"
+                      >
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Minutes</Label>
+                      <select
+                        value={fromTime.minutes}
+                        onChange={(e) => setFromTime({ ...fromTime, minutes: parseInt(e.target.value) })}
+                        className="w-full p-2 border rounded-md bg-background"
+                      >
+                        {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((min) => (
+                          <option key={min} value={min}>{String(min).padStart(2, '0')}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
 
-            {/* Time Picker */}
-            <div className="flex-1 space-y-2">
-              <Label>Select Time</Label>
-              <div className="flex gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Clock className="mr-2 h-4 w-4" />
-                      {String(selectedTime.hours).padStart(2, '0')}:{String(selectedTime.minutes).padStart(2, '0')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-4" align="start">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Hours</Label>
-                        <select
-                          value={selectedTime.hours}
-                          onChange={(e) => setSelectedTime({ ...selectedTime, hours: parseInt(e.target.value) })}
-                          className="w-full p-2 border rounded-md bg-background"
-                        >
-                          {Array.from({ length: 24 }, (_, i) => (
-                            <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Minutes</Label>
-                        <select
-                          value={selectedTime.minutes}
-                          onChange={(e) => setSelectedTime({ ...selectedTime, minutes: parseInt(e.target.value) })}
-                          className="w-full p-2 border rounded-md bg-background"
-                        >
-                          {Array.from({ length: 60 }, (_, i) => (
-                            <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
-                          ))}
-                        </select>
-                      </div>
+            {/* To Time */}
+            <div className="space-y-2">
+              <Label>To Time</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start">
+                    <Clock className="mr-2 h-4 w-4" />
+                    {String(toTime.hours).padStart(2, '0')}:{String(toTime.minutes).padStart(2, '0')}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-4" align="start">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Hours</Label>
+                      <select
+                        value={toTime.hours}
+                        onChange={(e) => setToTime({ ...toTime, hours: parseInt(e.target.value) })}
+                        className="w-full p-2 border rounded-md bg-background"
+                      >
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
+                        ))}
+                      </select>
                     </div>
-                  </PopoverContent>
-                </Popover>
+                    <div className="space-y-2">
+                      <Label>Minutes</Label>
+                      <select
+                        value={toTime.minutes}
+                        onChange={(e) => setToTime({ ...toTime, minutes: parseInt(e.target.value) })}
+                        className="w-full p-2 border rounded-md bg-background"
+                      >
+                        {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((min) => (
+                          <option key={min} value={min}>{String(min).padStart(2, '0')}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Time Slider */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-medium">
+                Current Time: {String(currentTime.hours).padStart(2, '0')}:{String(currentTime.minutes).padStart(2, '0')}
+              </Label>
+              <div className="text-sm text-muted-foreground">
+                Drag to view data at different times (5-min intervals)
               </div>
+            </div>
+            <Slider
+              value={sliderValue}
+              onValueChange={setSliderValue}
+              max={totalIntervals}
+              step={1}
+              className="w-full"
+              disabled={totalIntervals === 0}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{String(fromTime.hours).padStart(2, '0')}:{String(fromTime.minutes).padStart(2, '0')}</span>
+              <span>{String(toTime.hours).padStart(2, '0')}:{String(toTime.minutes).padStart(2, '0')}</span>
             </div>
           </div>
           
-          <div className="text-sm text-muted-foreground">
-            Viewing data for: {format(selectedDate, "PPP")} at {String(selectedTime.hours).padStart(2, '0')}:{String(selectedTime.minutes).padStart(2, '0')}
+          <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+            <strong>Viewing data for:</strong> {format(selectedDate, "PPP")} at {String(currentTime.hours).padStart(2, '0')}:{String(currentTime.minutes).padStart(2, '0')}
           </div>
         </CardContent>
       </Card>
@@ -149,11 +245,11 @@ export default function AnalyticsTab() {
             <div className="mt-4 flex justify-center gap-6">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full bg-primary" />
-                <span className="text-sm">Patients: 12</span>
+                <span className="text-sm">Patients: {pieData[0]?.value || 0}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full bg-secondary" />
-                <span className="text-sm">Nurses: 12</span>
+                <span className="text-sm">Nurses: {pieData[1]?.value || 0}</span>
               </div>
             </div>
           </CardContent>
@@ -189,12 +285,21 @@ export default function AnalyticsTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <p className="text-sm">
-              <strong>Ward-A</strong> has high occupancy (4 patients, 3 nurses)
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Consider redistributing staff if needed
-            </p>
+            {roomData
+              .filter(room => room.patients >= 4 || room.nurses >= 3)
+              .map(room => (
+                <div key={room.name}>
+                  <p className="text-sm">
+                    <strong>{room.name}</strong> has high occupancy ({room.patients} patients, {room.nurses} nurses)
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Consider redistributing staff if needed
+                  </p>
+                </div>
+              ))}
+            {roomData.every(room => room.patients < 4 && room.nurses < 3) && (
+              <p className="text-sm text-muted-foreground">No high occupancy alerts at this time</p>
+            )}
           </div>
         </CardContent>
       </Card>
