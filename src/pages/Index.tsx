@@ -1,13 +1,37 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import Layout from "@/components/Layout";
+import DashboardTab from "@/components/Dashboard/DashboardTab";
+import PatientConfigTab from "@/components/PatientConfig/PatientConfigTab";
+import AnalyticsTab from "@/components/Analytics/AnalyticsTab";
+import ExportTab from "@/components/Export/ExportTab";
+import SettingsTab from "@/components/Settings/SettingsTab";
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState("dashboard");
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return <DashboardTab />;
+      case "patients":
+        return <PatientConfigTab />;
+      case "analytics":
+        return <AnalyticsTab />;
+      case "export":
+        return <ExportTab />;
+      case "settings":
+        return <SettingsTab />;
+      default:
+        return <DashboardTab />;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+      <div className="min-h-screen">
+        {renderContent()}
       </div>
-    </div>
+    </Layout>
   );
 };
 
