@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const roomData = [
@@ -18,10 +23,8 @@ const pieData = [
 ];
 
 export default function AnalyticsTab() {
-  const [timeValue, setTimeValue] = useState([50]);
-  const currentDate = new Date();
-  const hours = Math.floor((timeValue[0] / 100) * 24);
-  const minutes = Math.floor(((timeValue[0] / 100) * 24 - hours) * 60);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedTime, setSelectedTime] = useState({ hours: 12, minutes: 0 });
 
   return (
     <div className="p-6 space-y-6">
@@ -31,33 +34,87 @@ export default function AnalyticsTab() {
         <p className="text-muted-foreground mt-1">Crowd analysis and occupancy insights</p>
       </div>
 
-      {/* Timeline Slider */}
+      {/* Date and Time Picker */}
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle>Historical Timeline</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label className="text-base font-medium">
-              Selected Time: {currentDate.toLocaleDateString()} {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}
-            </Label>
-            <div className="text-sm text-muted-foreground">
-              Drag to view historical data
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Date Picker */}
+            <div className="flex-1 space-y-2">
+              <Label>Select Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Time Picker */}
+            <div className="flex-1 space-y-2">
+              <Label>Select Time</Label>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Clock className="mr-2 h-4 w-4" />
+                      {String(selectedTime.hours).padStart(2, '0')}:{String(selectedTime.minutes).padStart(2, '0')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-4" align="start">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Hours</Label>
+                        <select
+                          value={selectedTime.hours}
+                          onChange={(e) => setSelectedTime({ ...selectedTime, hours: parseInt(e.target.value) })}
+                          className="w-full p-2 border rounded-md bg-background"
+                        >
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Minutes</Label>
+                        <select
+                          value={selectedTime.minutes}
+                          onChange={(e) => setSelectedTime({ ...selectedTime, minutes: parseInt(e.target.value) })}
+                          className="w-full p-2 border rounded-md bg-background"
+                        >
+                          {Array.from({ length: 60 }, (_, i) => (
+                            <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
-          <Slider
-            value={timeValue}
-            onValueChange={setTimeValue}
-            max={100}
-            step={1}
-            className="w-full"
-          />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>00:00</span>
-            <span>06:00</span>
-            <span>12:00</span>
-            <span>18:00</span>
-            <span>23:59</span>
+          
+          <div className="text-sm text-muted-foreground">
+            Viewing data for: {format(selectedDate, "PPP")} at {String(selectedTime.hours).padStart(2, '0')}:{String(selectedTime.minutes).padStart(2, '0')}
           </div>
         </CardContent>
       </Card>

@@ -12,6 +12,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const mockPatients = [
   { id: "1", name: "John Smith", patientId: "P-2024-001", macAddress: "AA:BB:CC:DD:EE:01", room: "ICU-101", type: "patient" },
@@ -25,6 +41,14 @@ export default function PatientConfigTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>({});
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newPatient, setNewPatient] = useState({
+    name: "",
+    patientId: "",
+    macAddress: "",
+    room: "",
+    type: "patient"
+  });
 
   const filteredPatients = patients.filter(
     (p) =>
@@ -48,6 +72,20 @@ export default function PatientConfigTab() {
     setEditData({});
   };
 
+  const handleAddPatient = () => {
+    const id = (patients.length + 1).toString();
+    const patient = { id, ...newPatient };
+    setPatients([...patients, patient]);
+    setNewPatient({
+      name: "",
+      patientId: "",
+      macAddress: "",
+      room: "",
+      type: "patient"
+    });
+    setIsAddDialogOpen(false);
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -56,7 +94,7 @@ export default function PatientConfigTab() {
           <h2 className="text-3xl font-bold text-foreground">Patient Configuration</h2>
           <p className="text-muted-foreground mt-1">Manage device assignments and patient information</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
           <Plus className="h-4 w-4" />
           Add New Patient
         </Button>
@@ -175,6 +213,74 @@ export default function PatientConfigTab() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Add Patient Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Patient</DialogTitle>
+            <DialogDescription>
+              Enter the patient or provider information and device details.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={newPatient.name}
+                onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
+                placeholder="John Smith"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="patientId">Patient/Provider ID</Label>
+              <Input
+                id="patientId"
+                value={newPatient.patientId}
+                onChange={(e) => setNewPatient({ ...newPatient, patientId: e.target.value })}
+                placeholder="P-2024-005"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="macAddress">MAC Address</Label>
+              <Input
+                id="macAddress"
+                value={newPatient.macAddress}
+                onChange={(e) => setNewPatient({ ...newPatient, macAddress: e.target.value })}
+                placeholder="AA:BB:CC:DD:EE:FF"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="room">Room</Label>
+              <Input
+                id="room"
+                value={newPatient.room}
+                onChange={(e) => setNewPatient({ ...newPatient, room: e.target.value })}
+                placeholder="ICU-101"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="type">Type</Label>
+              <Select value={newPatient.type} onValueChange={(value) => setNewPatient({ ...newPatient, type: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="patient">Patient</SelectItem>
+                  <SelectItem value="provider">Provider</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddPatient}>Add Patient</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
