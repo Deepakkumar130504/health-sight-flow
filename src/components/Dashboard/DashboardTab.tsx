@@ -72,64 +72,56 @@ export default function DashboardTab() {
   const providerCount = filteredDevices.filter(d => d.type === "provider").length;
 
   return (
-    <div className="p-8 space-y-8">
-      {/* Header with gradient */}
-      <div className="relative">
-        <div className="absolute inset-0 gradient-primary opacity-10 blur-3xl rounded-3xl" />
-        <div className="relative">
-          <h2 className="text-4xl font-bold text-foreground bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Dashboard Overview
-          </h2>
-          <p className="text-muted-foreground mt-2 text-lg">Real-time patient and provider tracking</p>
-        </div>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-3xl font-bold text-foreground">Dashboard Overview</h2>
+        <p className="text-muted-foreground mt-1">Real-time patient and provider tracking</p>
       </div>
 
-      {/* Stats Cards with beautiful gradients */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="hover-lift border-0 shadow-lg bg-gradient-to-br from-card to-muted/30 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
-          <CardHeader className="pb-3 relative z-10">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="shadow-md">
+          <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Tracked</CardTitle>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="text-4xl font-bold text-foreground">{filteredDevices.length}</div>
-            <p className="text-sm text-muted-foreground mt-2">Active devices</p>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">{filteredDevices.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Active devices</p>
           </CardContent>
         </Card>
 
-        <Card className="hover-lift border-0 shadow-primary gradient-primary overflow-hidden relative group">
-          <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors" />
-          <CardHeader className="pb-3 relative z-10">
-            <CardTitle className="text-sm font-medium text-primary-foreground/80">Patients</CardTitle>
+        <Card className="shadow-md border-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Patients</CardTitle>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="text-4xl font-bold text-primary-foreground">{patientCount}</div>
-            <p className="text-sm text-primary-foreground/80 mt-2">Currently tracked</p>
+          <CardContent>
+            <div className="text-3xl font-bold text-primary">{patientCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Currently tracked</p>
           </CardContent>
         </Card>
 
-        <Card className="hover-lift border-0 shadow-secondary gradient-secondary overflow-hidden relative group">
-          <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors" />
-          <CardHeader className="pb-3 relative z-10">
-            <CardTitle className="text-sm font-medium text-secondary-foreground/80">Providers</CardTitle>
+        <Card className="shadow-md border-secondary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Providers</CardTitle>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="text-4xl font-bold text-secondary-foreground">{providerCount}</div>
-            <p className="text-sm text-secondary-foreground/80 mt-2">Staff on duty</p>
+          <CardContent>
+            <div className="text-3xl font-bold text-secondary">{providerCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Staff on duty</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Floor Map Section */}
         <div className="lg:col-span-2">
-          <Card className="border-0 shadow-xl h-full overflow-hidden backdrop-blur-sm bg-card/80">
-            <CardHeader className="border-b border-border/50 bg-gradient-to-r from-primary/5 to-secondary/5">
+          <Card className="shadow-lg h-full">
+            <CardHeader className="border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xl font-bold">Floor Map</CardTitle>
+                <CardTitle>Floor Map</CardTitle>
                 <Select value={selectedFloor} onValueChange={setSelectedFloor}>
-                  <SelectTrigger className="w-32 border-primary/20 hover:border-primary/40 transition-colors">
+                  <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -149,9 +141,9 @@ export default function DashboardTab() {
 
         {/* Device List Section */}
         <div>
-          <Card className="border-0 shadow-xl h-full flex flex-col backdrop-blur-sm bg-card/80">
-            <CardHeader className="border-b border-border/50 bg-gradient-to-r from-secondary/5 to-primary/5">
-              <CardTitle className="text-xl font-bold">Devices</CardTitle>
+          <Card className="shadow-lg h-full flex flex-col">
+            <CardHeader className="border-b">
+              <CardTitle>Devices</CardTitle>
               
               {/* Search */}
               <div className="relative mt-4">
@@ -160,7 +152,7 @@ export default function DashboardTab() {
                   placeholder="Search by name or ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 border-primary/20 focus:border-primary/40 transition-colors"
+                  className="pl-9"
                 />
               </div>
 
@@ -170,7 +162,7 @@ export default function DashboardTab() {
                   variant={filterType === "all" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilterType("all")}
-                  className="flex-1 transition-all hover:scale-105"
+                  className="flex-1"
                 >
                   All ({mockDevices.length})
                 </Button>
@@ -178,7 +170,7 @@ export default function DashboardTab() {
                   variant={filterType === "patient" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilterType("patient")}
-                  className="flex-1 transition-all hover:scale-105"
+                  className="flex-1"
                 >
                   Patients
                 </Button>
@@ -186,7 +178,7 @@ export default function DashboardTab() {
                   variant={filterType === "provider" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilterType("provider")}
-                  className="flex-1 transition-all hover:scale-105"
+                  className="flex-1"
                 >
                   Providers
                 </Button>
@@ -194,7 +186,7 @@ export default function DashboardTab() {
 
               {/* Room Type Filter */}
               <Select value={roomFilter} onValueChange={setRoomFilter}>
-                <SelectTrigger className="mt-2 border-primary/20 hover:border-primary/40 transition-colors">
+                <SelectTrigger className="mt-2">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Filter by room" />
                 </SelectTrigger>
@@ -209,14 +201,8 @@ export default function DashboardTab() {
 
             {/* Device Cards List */}
             <CardContent className="flex-1 overflow-auto p-4 space-y-3">
-              {filteredDevices.map((device, index) => (
-                <div 
-                  key={device.id}
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
-                  <DeviceCard device={device} />
-                </div>
+              {filteredDevices.map((device) => (
+                <DeviceCard key={device.id} device={device} />
               ))}
               {filteredDevices.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">

@@ -8,8 +8,8 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Clean white background with subtle gradient */
-    --background: 210 20% 98%;
+    /* Clean white background */
+    --background: 0 0% 100%;
     --foreground: 215 25% 27%;
 
     /* Card styling with subtle elevation */
@@ -19,24 +19,20 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 27%;
 
-    /* Vibrant medical blue/teal - professional and modern */
-    --primary: 195 90% 48%;
+    /* Medical blue/teal - professional and trustworthy */
+    --primary: 195 85% 45%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 195 90% 42%;
-    --primary-light: 195 90% 90%;
-    --primary-glow: 195 90% 60%;
+    --primary-hover: 195 85% 38%;
 
-    /* Fresh green accent - healthcare wellness */
-    --secondary: 158 70% 48%;
+    /* Soft green accent - healthcare wellness */
+    --secondary: 158 64% 52%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-light: 158 70% 90%;
-    --secondary-glow: 158 70% 60%;
 
     /* Light grays for subtle elements */
-    --muted: 210 25% 95%;
-    --muted-foreground: 215 15% 45%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 15% 50%;
 
-    --accent: 158 70% 48%;
+    --accent: 158 64% 52%;
     --accent-foreground: 0 0% 100%;
 
     /* Status colors */
@@ -48,61 +44,69 @@ All colors MUST be HSL.
     --success-foreground: 0 0% 100%;
 
     /* Borders and inputs - subtle */
-    --border: 214 25% 90%;
-    --input: 214 25% 92%;
-    --ring: 195 90% 48%;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 195 85% 45%;
 
     --radius: 0.75rem;
 
-    /* Sidebar with gradient */
-    --sidebar-background: 215 30% 20%;
+    /* Sidebar specific colors */
+    --sidebar-background: 215 25% 27%;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 195 90% 48%;
+    --sidebar-primary: 195 85% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 30%;
+    --sidebar-accent: 215 25% 35%;
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 215 20% 15%;
-    --sidebar-ring: 195 90% 48%;
+    --sidebar-border: 215 20% 20%;
+    --sidebar-ring: 195 85% 45%;
 
-    /* Beautiful shadows */
+    /* Custom shadows for cards */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 2px 8px 0 rgb(0 0 0 / 0.08);
-    --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.12);
-    --shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.15);
-    --shadow-xl: 0 20px 40px -10px rgb(0 0 0 / 0.2);
-    --shadow-primary: 0 8px 20px -5px hsl(195 90% 48% / 0.3);
-    --shadow-secondary: 0 8px 20px -5px hsl(158 70% 48% / 0.3);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     
-    /* Smooth transitions */
-    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Transitions */
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 215 30% 12%;
+    --background: 215 28% 17%;
     --foreground: 0 0% 95%;
 
-    --card: 215 25% 16%;
+    --card: 215 25% 20%;
     --card-foreground: 0 0% 95%;
 
-    --popover: 215 25% 16%;
+    --popover: 215 25% 20%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 195 90% 48%;
+    --primary: 195 85% 45%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 195 90% 42%;
-    --primary-light: 195 90% 20%;
-    --primary-glow: 195 90% 60%;
+    --primary-hover: 195 85% 38%;
 
-    --secondary: 158 70% 48%;
+    --secondary: 158 64% 52%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-light: 158 70% 20%;
-    --secondary-glow: 158 70% 60%;
 
-    --muted: 215 25% 20%;
-    --muted-foreground: 215 15% 60%;
+    --muted: 215 20% 25%;
+    --muted-foreground: 215 15% 65%;
 
-    --accent: 158 70% 48%;
+    --accent: 158 64% 52%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -112,21 +116,18 @@ All colors MUST be HSL.
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    --border: 215 25% 22%;
-    --input: 215 25% 24%;
-    --ring: 195 90% 48%;
+    --border: 215 20% 30%;
+    --input: 215 20% 30%;
+    --ring: 195 85% 45%;
 
-    --sidebar-background: 215 30% 10%;
+    --sidebar-background: 215 28% 15%;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 195 90% 48%;
+    --sidebar-primary: 195 85% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 18%;
+    --sidebar-accent: 215 25% 22%;
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 215 20% 8%;
-    --sidebar-ring: 195 90% 48%;
-
-    --shadow-primary: 0 8px 20px -5px hsl(195 90% 48% / 0.4);
-    --shadow-secondary: 0 8px 20px -5px hsl(158 70% 48% / 0.4);
+    --sidebar-border: 215 20% 20%;
+    --sidebar-ring: 195 85% 45%;
   }
 }
 
@@ -137,38 +138,5 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
-    background-attachment: fixed;
-  }
-}
-
-@layer utilities {
-  .shadow-primary {
-    box-shadow: var(--shadow-primary);
-  }
-  
-  .shadow-secondary {
-    box-shadow: var(--shadow-secondary);
-  }
-
-  .gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
-  }
-
-  .gradient-secondary {
-    background: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(var(--secondary-glow)) 100%);
-  }
-
-  .hover-lift {
-    transition: var(--transition);
-  }
-
-  .hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-  }
-
-  .animate-pulse-slow {
-    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }

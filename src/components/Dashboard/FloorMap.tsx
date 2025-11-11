@@ -15,103 +15,74 @@ interface FloorMapProps {
 
 export default function FloorMap({ devices, floor }: FloorMapProps) {
   return (
-    <div className="relative w-full h-[500px] rounded-xl overflow-hidden shadow-inner bg-gradient-to-br from-muted/40 via-background to-muted/20">
-      {/* Animated background grid */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="grid grid-cols-12 grid-rows-12 h-full w-full">
-          {Array.from({ length: 144 }).map((_, i) => (
-            <div 
-              key={i} 
-              className="border border-primary/30 transition-colors hover:border-primary/60"
-              style={{ animationDelay: `${i * 0.01}s` }}
-            />
+    <div className="relative w-full h-[500px] bg-muted/30 rounded-lg border-2 border-dashed border-border overflow-hidden">
+      {/* Floor Plan Grid */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="grid grid-cols-8 grid-rows-8 h-full w-full">
+          {Array.from({ length: 64 }).map((_, i) => (
+            <div key={i} className="border border-muted-foreground/20" />
           ))}
         </div>
       </div>
 
-      {/* Gradient overlays for depth */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
-
-      {/* Room Labels with modern styling */}
-      <div className="absolute top-6 left-6 space-y-2">
-        <Badge variant="outline" className="bg-card/95 backdrop-blur-sm shadow-md border-primary/30 text-sm font-semibold">
-          ICU Section
-        </Badge>
+      {/* Room Labels */}
+      <div className="absolute top-4 left-4 space-y-2">
+        <Badge variant="outline" className="bg-background/90">ICU Section</Badge>
       </div>
-      <div className="absolute top-6 right-6 space-y-2">
-        <Badge variant="outline" className="bg-card/95 backdrop-blur-sm shadow-md border-secondary/30 text-sm font-semibold">
-          General Ward
-        </Badge>
+      <div className="absolute top-4 right-4 space-y-2">
+        <Badge variant="outline" className="bg-background/90">General Ward</Badge>
       </div>
-      <div className="absolute bottom-6 left-6 space-y-2">
-        <Badge variant="outline" className="bg-card/95 backdrop-blur-sm shadow-md border-accent/30 text-sm font-semibold">
-          Ward-A
-        </Badge>
+      <div className="absolute bottom-4 left-4 space-y-2">
+        <Badge variant="outline" className="bg-background/90">Ward-A</Badge>
       </div>
 
-      {/* Device Markers with enhanced styling */}
-      {devices.map((device, index) => {
+      {/* Device Markers */}
+      {devices.map((device) => {
         const isPatient = device.type === "patient";
         const Icon = isPatient ? User : Stethoscope;
         
         return (
           <div
             key={device.id}
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer animate-fade-in"
+            className="absolute transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer"
             style={{
               left: `${device.location.x}%`,
               top: `${device.location.y}%`,
-              animationDelay: `${index * 0.1}s`
             }}
           >
-            {/* Outer glow ring */}
+            {/* Marker */}
             <div
-              className={`absolute inset-0 w-16 h-16 rounded-full -m-3 ${
-                isPatient ? "bg-primary/20" : "bg-secondary/20"
-              } blur-xl group-hover:scale-150 transition-transform duration-500`}
-            />
-
-            {/* Marker with gradient */}
-            <div
-              className={`relative w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-125 ${
+              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-transform group-hover:scale-125 ${
                 isPatient
-                  ? "gradient-primary shadow-primary"
-                  : "gradient-secondary shadow-secondary"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground"
               }`}
             >
-              <Icon className="h-6 w-6 text-white drop-shadow-lg" />
+              <Icon className="h-5 w-5" />
             </div>
 
-            {/* Enhanced tooltip */}
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none scale-75 group-hover:scale-100">
-              <div className="bg-card/95 backdrop-blur-md border border-border rounded-xl shadow-2xl p-4 whitespace-nowrap">
-                <p className="font-bold text-base text-foreground">{device.name}</p>
-                <p className="text-sm text-muted-foreground mt-1">{device.location.room}</p>
-                <div className={`mt-2 h-1 w-full rounded-full ${isPatient ? 'gradient-primary' : 'gradient-secondary'}`} />
+            {/* Tooltip on Hover */}
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <div className="bg-card border border-border rounded-lg shadow-lg p-3 whitespace-nowrap">
+                <p className="font-semibold text-sm">{device.name}</p>
+                <p className="text-xs text-muted-foreground">{device.location.room}</p>
               </div>
             </div>
 
-            {/* Multiple pulse rings */}
+            {/* Pulse Animation */}
             <div
-              className={`absolute inset-0 w-12 h-12 rounded-full animate-ping opacity-50 ${
+              className={`absolute inset-0 rounded-full animate-ping opacity-75 ${
                 isPatient ? "bg-primary" : "bg-secondary"
               }`}
               style={{ animationDuration: "2s" }}
-            />
-            <div
-              className={`absolute inset-0 w-12 h-12 rounded-full animate-pulse-slow opacity-30 ${
-                isPatient ? "bg-primary" : "bg-secondary"
-              }`}
             />
           </div>
         );
       })}
 
-      {/* Floor Label with gradient */}
-      <div className="absolute bottom-6 right-6">
-        <Badge className="text-lg px-6 py-3 shadow-xl gradient-primary font-bold">
-          Floor {floor}
-        </Badge>
+      {/* Floor Label */}
+      <div className="absolute bottom-4 right-4">
+        <Badge className="text-base px-4 py-2">Floor {floor}</Badge>
       </div>
     </div>
   );
