@@ -38,6 +38,8 @@ export default function AnalyticsTab() {
     date.setDate(date.getDate() + 7);
     return date;
   });
+  const [selectedFromDay, setSelectedFromDay] = useState<Date>(new Date());
+  const [selectedToDay, setSelectedToDay] = useState<Date>(new Date());
   const [fromTime, setFromTime] = useState({ hours: 8, minutes: 0 });
   const [toTime, setToTime] = useState({ hours: 18, minutes: 0 });
   const [sliderValue, setSliderValue] = useState([0]);
@@ -143,11 +145,22 @@ export default function AnalyticsTab() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start">
                     <Clock className="mr-2 h-4 w-4" />
-                    {String(fromTime.hours).padStart(2, '0')}:{String(fromTime.minutes).padStart(2, '0')}
+                    {format(selectedFromDay, "MMM dd")} - {String(fromTime.hours).padStart(2, '0')}:{String(fromTime.minutes).padStart(2, '0')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-4" align="start">
                   <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Day</Label>
+                      <Calendar
+                        mode="single"
+                        selected={selectedFromDay}
+                        onSelect={(date) => date && setSelectedFromDay(date)}
+                        disabled={(date) => date < fromDate || date > toDate}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </div>
                     <div className="space-y-2">
                       <Label>Hours</Label>
                       <select
@@ -184,11 +197,22 @@ export default function AnalyticsTab() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start">
                     <Clock className="mr-2 h-4 w-4" />
-                    {String(toTime.hours).padStart(2, '0')}:{String(toTime.minutes).padStart(2, '0')}
+                    {format(selectedToDay, "MMM dd")} - {String(toTime.hours).padStart(2, '0')}:{String(toTime.minutes).padStart(2, '0')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-4" align="start">
                   <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Day</Label>
+                      <Calendar
+                        mode="single"
+                        selected={selectedToDay}
+                        onSelect={(date) => date && setSelectedToDay(date)}
+                        disabled={(date) => date < fromDate || date > toDate}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </div>
                     <div className="space-y-2">
                       <Label>Hours</Label>
                       <select
@@ -244,7 +268,7 @@ export default function AnalyticsTab() {
           </div>
           
           <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-            <strong>Viewing data for:</strong> {format(fromDate, "PPP")} to {format(toDate, "PPP")} at {String(currentTime.hours).padStart(2, '0')}:{String(currentTime.minutes).padStart(2, '0')}
+            <strong>Viewing data for:</strong> {format(selectedFromDay, "PPP")} at {String(fromTime.hours).padStart(2, '0')}:{String(fromTime.minutes).padStart(2, '0')} to {format(selectedToDay, "PPP")} at {String(currentTime.hours).padStart(2, '0')}:{String(currentTime.minutes).padStart(2, '0')}
           </div>
         </CardContent>
       </Card>
