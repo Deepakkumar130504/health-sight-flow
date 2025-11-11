@@ -32,22 +32,27 @@ const generatePieData = (roomData: any[]) => {
 };
 
 export default function AnalyticsTab() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [fromDate, setFromDate] = useState<Date>(new Date());
+  const [toDate, setToDate] = useState<Date>(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 7);
+    return date;
+  });
   const [fromTime, setFromTime] = useState({ hours: 8, minutes: 0 });
   const [toTime, setToTime] = useState({ hours: 18, minutes: 0 });
   const [sliderValue, setSliderValue] = useState([0]);
 
-  // Calculate total 5-minute intervals between from and to time
+  // Calculate total 1-hour intervals between from and to time
   const totalIntervals = useMemo(() => {
     const fromMinutes = fromTime.hours * 60 + fromTime.minutes;
     const toMinutes = toTime.hours * 60 + toTime.minutes;
-    return Math.max(0, Math.floor((toMinutes - fromMinutes) / 5));
+    return Math.max(0, Math.floor((toMinutes - fromMinutes) / 60));
   }, [fromTime, toTime]);
 
   // Calculate current time based on slider position
   const currentTime = useMemo(() => {
     const fromMinutes = fromTime.hours * 60 + fromTime.minutes;
-    const currentMinutes = fromMinutes + (sliderValue[0] * 5);
+    const currentMinutes = fromMinutes + (sliderValue[0] * 60);
     return {
       hours: Math.floor(currentMinutes / 60) % 24,
       minutes: currentMinutes % 60
@@ -72,32 +77,61 @@ export default function AnalyticsTab() {
           <CardTitle>Historical Timeline</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Date Picker */}
-          <div className="space-y-2">
-            <Label>Select Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+          {/* Date Range Picker */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>From Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !fromDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {fromDate ? format(fromDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={fromDate}
+                    onSelect={(date) => date && setFromDate(date)}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>To Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !toDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {toDate ? format(toDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={toDate}
+                    onSelect={(date) => date && setToDate(date)}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           {/* Time Range Pickers */}
@@ -192,7 +226,7 @@ export default function AnalyticsTab() {
                 Current Time: {String(currentTime.hours).padStart(2, '0')}:{String(currentTime.minutes).padStart(2, '0')}
               </Label>
               <div className="text-sm text-muted-foreground">
-                Drag to view data at different times (5-min intervals)
+                Drag to view data at different times (1-hour intervals)
               </div>
             </div>
             <Slider
@@ -210,7 +244,7 @@ export default function AnalyticsTab() {
           </div>
           
           <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-            <strong>Viewing data for:</strong> {format(selectedDate, "PPP")} at {String(currentTime.hours).padStart(2, '0')}:{String(currentTime.minutes).padStart(2, '0')}
+            <strong>Viewing data for:</strong> {format(fromDate, "PPP")} to {format(toDate, "PPP")} at {String(currentTime.hours).padStart(2, '0')}:{String(currentTime.minutes).padStart(2, '0')}
           </div>
         </CardContent>
       </Card>
