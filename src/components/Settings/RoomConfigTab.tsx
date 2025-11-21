@@ -2,21 +2,47 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, MapPin, Undo2 } from "lucide-react";
+import { CheckCircle2, MapPin, Undo2, Upload, Save } from "lucide-react";
 
 interface Point {
   x: number;
   y: number;
 }
 
+interface RoomData {
+  points: Point[];
+  floorPlanWidth: number;
+  floorPlanHeight: number;
+  imageUrl: string;
+  canvasWidth: number;
+  canvasHeight: number;
+}
+
 export default function RoomConfigTab() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [roomPoints, setRoomPoints] = useState<Point[]>([]);
   const [isRoomComplete, setIsRoomComplete] = useState(false);
+  const [floorPlanImage, setFloorPlanImage] = useState<string>("");
+  const [floorPlanWidth, setFloorPlanWidth] = useState<string>("");
+  const [floorPlanHeight, setFloorPlanHeight] = useState<string>("");
+  const [canvasDimensions, setCanvasDimensions] = useState({ width: 0, height: 0 });
   const { toast } = useToast();
 
   const CLOSE_THRESHOLD = 15; // pixels - distance to close the polygon
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFloorPlanImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isRoomComplete) return;
@@ -64,6 +90,34 @@ export default function RoomConfigTab() {
     setIsRoomComplete(false);
   };
 
+  const saveRoomData = () => {
+    if (!isRoomComplete || !floorPlanWidth || !floorPlanHeight) {
+      toast({
+        title: "Cannot save",
+        description: "Please complete the room and enter floor plan dimensions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const roomData: RoomData = {
+      points: roomPoints,
+      floorPlanWidth: parseFloat(floorPlanWidth),
+      floorPlanHeight: parseFloat(floorPlanHeight),
+      imageUrl: floorPlanImage,
+      canvasWidth: canvasDimensions.width,
+      canvasHeight: canvasDimensions.height,
+    };
+
+    // Save to localStorage for now (can be changed to Supabase later)
+    localStorage.setItem('roomConfiguration', JSON.stringify(roomData));
+    
+    toast({
+      title: "Room saved!",
+      description: `Room configuration saved with ${roomPoints.length} points.`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -74,6 +128,62 @@ export default function RoomConfigTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Floor Plan Upload */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5 text-primary" />
+              Floor Plan Setup
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="floor-plan">Upload Floor Plan</Label>
+              <Input
+                id="floor-plan"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="cursor-pointer"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="width">Floor Width (meters)</Label>
+                <Input
+                  id="width"
+                  type="number"
+                  step="0.1"
+                  placeholder="e.g., 50"
+                  value={floorPlanWidth}
+                  onChange={(e) => setFloorPlanWidth(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="height">Floor Height (meters)</Label>
+                <Input
+                  id="height"
+                  type="number"
+                  step="0.1"
+                  placeholder="e.g., 30"
+                  value={floorPlanHeight}
+                  onChange={(e) => setFloorPlanHeight(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {floorPlanImage && floorPlanWidth && floorPlanHeight && (
+              <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                <p className="text-muted-foreground">
+                  Scale: {floorPlanWidth}m × {floorPlanHeight}m
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Instructions */}
         <Card>
           <CardHeader>
@@ -150,13 +260,22 @@ export default function RoomConfigTab() {
               )}
 
               {isRoomComplete && (
-                <Button 
-                  variant="outline" 
-                  onClick={resetRoom}
-                  className="w-full"
-                >
-                  Draw New Room
-                </Button>
+                <>
+                  <Button 
+                    onClick={saveRoomData}
+                    className="w-full gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    Save Room Configuration
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={resetRoom}
+                    className="w-full"
+                  >
+                    Draw New Room
+                  </Button>
+                </>
               )}
             </div>
 
@@ -199,7 +318,20 @@ export default function RoomConfigTab() {
                 isDrawing && !isRoomComplete ? "cursor-crosshair border-primary" : "border-border"
               }`}
               onClick={handleCanvasClick}
+              ref={(el) => {
+                if (el && canvasDimensions.width === 0) {
+                  setCanvasDimensions({ width: el.offsetWidth, height: el.offsetHeight });
+                }
+              }}
             >
+              {/* Background image */}
+              {floorPlanImage && (
+                <img 
+                  src={floorPlanImage} 
+                  alt="Floor plan" 
+                  className="absolute inset-0 w-full h-full object-contain opacity-60"
+                />
+              )}
               {/* SVG for drawing lines and polygon */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none">
                 {/* Draw lines between consecutive points */}
