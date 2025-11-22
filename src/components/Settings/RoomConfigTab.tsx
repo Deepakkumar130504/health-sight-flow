@@ -1,11 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, MapPin, Undo2, Upload, Save } from "lucide-react";
+import { CheckCircle2, MapPin, Undo2, Upload, Save, Trash2, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Point {
   x: number;
@@ -13,6 +23,8 @@ interface Point {
 }
 
 interface RoomData {
+  id: string;
+  name: string;
   points: Point[];
   floorPlanWidth: number;
   floorPlanHeight: number;
@@ -29,9 +41,24 @@ export default function RoomConfigTab() {
   const [floorPlanWidth, setFloorPlanWidth] = useState<string>("");
   const [floorPlanHeight, setFloorPlanHeight] = useState<string>("");
   const [canvasDimensions, setCanvasDimensions] = useState({ width: 0, height: 0 });
+  const [savedRooms, setSavedRooms] = useState<RoomData[]>([]);
+  const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
+  const [roomName, setRoomName] = useState<string>("");
+  const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const CLOSE_THRESHOLD = 15; // pixels - distance to close the polygon
+
+  useEffect(() => {
+    loadSavedRooms();
+  }, []);
+
+  const loadSavedRooms = () => {
+    const stored = localStorage.getItem('roomConfigurations');
+    if (stored) {
+      setSavedRooms(JSON.parse(stored));
+    }
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,6 +77,18 @@ export default function RoomConfigTab() {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    // Check if clicking near an existing point to select it
+    for (let i = 0; i < roomPoints.length; i++) {
+      const point = roomPoints[i];
+      const distance = Math.sqrt(
+        Math.pow(x - point.x, 2) + Math.pow(y - point.y, 2)
+      );
+      if (distance <= 10) {
+        setSelectedPointIndex(i);
+        return;
+      }
+    }
 
     // Check if clicking near the starting point to close the room
     if (roomPoints.length >= 3) {
@@ -70,6 +109,7 @@ export default function RoomConfigTab() {
 
     // Add new point
     setRoomPoints([...roomPoints, { x, y }]);
+    setSelectedPointIndex(null);
   };
 
   const startDrawing = () => {
@@ -88,19 +128,35 @@ export default function RoomConfigTab() {
     setIsDrawing(false);
     setRoomPoints([]);
     setIsRoomComplete(false);
+    setSelectedPointIndex(null);
+    setRoomName("");
+  };
+
+  const deleteSelectedPoint = () => {
+    if (selectedPointIndex !== null) {
+      const newPoints = roomPoints.filter((_, index) => index !== selectedPointIndex);
+      setRoomPoints(newPoints);
+      setSelectedPointIndex(null);
+      toast({
+        title: "Point deleted",
+        description: "Selected point has been removed.",
+      });
+    }
   };
 
   const saveRoomData = () => {
-    if (!isRoomComplete || !floorPlanWidth || !floorPlanHeight) {
+    if (!isRoomComplete || !floorPlanWidth || !floorPlanHeight || !roomName.trim()) {
       toast({
         title: "Cannot save",
-        description: "Please complete the room and enter floor plan dimensions.",
+        description: "Please complete the room, enter floor plan dimensions, and provide a room name.",
         variant: "destructive",
       });
       return;
     }
 
     const roomData: RoomData = {
+      id: Date.now().toString(),
+      name: roomName.trim(),
       points: roomPoints,
       floorPlanWidth: parseFloat(floorPlanWidth),
       floorPlanHeight: parseFloat(floorPlanHeight),
@@ -109,12 +165,27 @@ export default function RoomConfigTab() {
       canvasHeight: canvasDimensions.height,
     };
 
-    // Save to localStorage for now (can be changed to Supabase later)
-    localStorage.setItem('roomConfiguration', JSON.stringify(roomData));
+    const updatedRooms = [...savedRooms, roomData];
+    setSavedRooms(updatedRooms);
+    localStorage.setItem('roomConfigurations', JSON.stringify(updatedRooms));
     
     toast({
       title: "Room saved!",
-      description: `Room configuration saved with ${roomPoints.length} points.`,
+      description: `"${roomName}" saved with ${roomPoints.length} points.`,
+    });
+
+    resetRoom();
+  };
+
+  const deleteRoom = (roomId: string) => {
+    const updatedRooms = savedRooms.filter(room => room.id !== roomId);
+    setSavedRooms(updatedRooms);
+    localStorage.setItem('roomConfigurations', JSON.stringify(updatedRooms));
+    setDeleteRoomId(null);
+    
+    toast({
+      title: "Room deleted",
+      description: "Room has been removed.",
     });
   };
 
@@ -251,6 +322,15 @@ export default function RoomConfigTab() {
                   </Button>
                   <Button 
                     variant="destructive" 
+                    onClick={deleteSelectedPoint}
+                    disabled={selectedPointIndex === null}
+                    className="w-full gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Selected Point
+                  </Button>
+                  <Button 
+                    variant="outline" 
                     onClick={resetRoom}
                     className="w-full"
                   >
@@ -261,6 +341,15 @@ export default function RoomConfigTab() {
 
               {isRoomComplete && (
                 <>
+                  <div className="space-y-2">
+                    <Label htmlFor="room-name">Room Name</Label>
+                    <Input
+                      id="room-name"
+                      placeholder="e.g., Ward A, ICU, Emergency"
+                      value={roomName}
+                      onChange={(e) => setRoomName(e.target.value)}
+                    />
+                  </div>
                   <Button 
                     onClick={saveRoomData}
                     className="w-full gap-2"
@@ -366,14 +455,27 @@ export default function RoomConfigTab() {
               {roomPoints.map((point, index) => (
                 <div
                   key={`point-${index}`}
-                  className={`absolute rounded-full -translate-x-2 -translate-y-2 border-2 border-background shadow-lg ${
-                    index === 0 ? "w-5 h-5 bg-success" : "w-4 h-4 bg-primary"
+                  className={`absolute rounded-full -translate-x-2 -translate-y-2 border-2 shadow-lg cursor-pointer transition-all ${
+                    selectedPointIndex === index 
+                      ? "w-6 h-6 bg-destructive border-destructive scale-110" 
+                      : index === 0 
+                      ? "w-5 h-5 bg-success border-background" 
+                      : "w-4 h-4 bg-primary border-background"
                   }`}
                   style={{ left: point.x, top: point.y }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedPointIndex(index);
+                  }}
                 >
-                  {index === 0 && (
+                  {index === 0 && selectedPointIndex !== index && (
                     <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-success whitespace-nowrap">
                       Start
+                    </div>
+                  )}
+                  {selectedPointIndex === index && (
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-destructive whitespace-nowrap">
+                      Selected
                     </div>
                   )}
                 </div>
@@ -399,7 +501,65 @@ export default function RoomConfigTab() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Saved Rooms List */}
+        {savedRooms.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                Saved Rooms ({savedRooms.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {savedRooms.map((room) => (
+                  <div
+                    key={room.id}
+                    className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-foreground">{room.name}</h4>
+                      <div className="flex gap-4 text-sm text-muted-foreground mt-1">
+                        <span>{room.points.length} points</span>
+                        <span>{room.floorPlanWidth}m × {room.floorPlanHeight}m</span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => setDeleteRoomId(room.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteRoomId !== null} onOpenChange={() => setDeleteRoomId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Room</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this room? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteRoomId && deleteRoom(deleteRoomId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
