@@ -430,7 +430,38 @@ export default function RoomConfigTab() {
               )}
               {/* SVG for drawing lines and polygon */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                {/* Draw lines between consecutive points */}
+                {/* Draw all saved rooms with different colors */}
+                {savedRooms.map((room, roomIndex) => {
+                  const hue = (roomIndex * 137.5) % 360; // Golden angle for color distribution
+                  return (
+                    <g key={room.id}>
+                      <polygon
+                        points={room.points.map(p => `${p.x},${p.y}`).join(' ')}
+                        fill={`hsl(${hue}, 70%, 50%, 0.15)`}
+                        stroke={`hsl(${hue}, 70%, 45%)`}
+                        strokeWidth="2"
+                        className="transition-all"
+                      />
+                      {/* Room label */}
+                      {room.points.length > 0 && (
+                        <text
+                          x={room.points.reduce((sum, p) => sum + p.x, 0) / room.points.length}
+                          y={room.points.reduce((sum, p) => sum + p.y, 0) / room.points.length}
+                          fill={`hsl(${hue}, 70%, 35%)`}
+                          fontSize="14"
+                          fontWeight="bold"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          className="pointer-events-none drop-shadow-lg"
+                        >
+                          {room.name}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+
+                {/* Draw lines between consecutive points for current room */}
                 {roomPoints.map((point, index) => {
                   if (index === 0) return null;
                   const prevPoint = roomPoints[index - 1];
@@ -442,18 +473,20 @@ export default function RoomConfigTab() {
                       x2={point.x}
                       y2={point.y}
                       stroke="hsl(var(--primary))"
-                      strokeWidth="2"
+                      strokeWidth="3"
+                      className="drop-shadow-lg"
                     />
                   );
                 })}
 
-                {/* Draw completed polygon */}
+                {/* Draw completed polygon for current room */}
                 {isRoomComplete && roomPoints.length > 0 && (
                   <polygon
                     points={roomPoints.map(p => `${p.x},${p.y}`).join(' ')}
-                    fill="hsl(var(--primary) / 0.1)"
+                    fill="hsl(var(--primary) / 0.2)"
                     stroke="hsl(var(--primary))"
-                    strokeWidth="2"
+                    strokeWidth="3"
+                    className="drop-shadow-lg"
                   />
                 )}
               </svg>
@@ -507,12 +540,25 @@ export default function RoomConfigTab() {
               )}
 
               {/* Empty state */}
-              {!isDrawing && !isRoomComplete && (
+              {!isDrawing && !isRoomComplete && savedRooms.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
                     <p className="text-muted-foreground">Click "Start Drawing Room" to begin</p>
                   </div>
+                </div>
+              )}
+
+              {/* Info for saved rooms */}
+              {!isDrawing && !isRoomComplete && savedRooms.length > 0 && (
+                <div className="absolute top-4 left-4 bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <span className="font-semibold">{savedRooms.length} room{savedRooms.length > 1 ? 's' : ''} saved</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Click "Start Drawing Room" to add another
+                  </p>
                 </div>
               )}
             </div>
