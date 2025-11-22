@@ -47,7 +47,7 @@ export default function RoomConfigTab() {
   const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const CLOSE_THRESHOLD = 15; // pixels - distance to close the polygon
+  const CLOSE_THRESHOLD = 40; // pixels - distance to close the polygon
 
   useEffect(() => {
     loadSavedRooms();
@@ -101,9 +101,16 @@ export default function RoomConfigTab() {
         setIsRoomComplete(true);
         toast({
           title: "Room completed!",
-          description: `Room outline created with ${roomPoints.length} points.`,
+          description: `Room outline created with ${roomPoints.length} points. Now enter a room name to save.`,
         });
         return;
+      } else if (distance <= CLOSE_THRESHOLD + 20) {
+        // Near but not close enough
+        toast({
+          title: "Almost there!",
+          description: "Click closer to the green starting point to complete the room.",
+          variant: "default",
+        });
       }
     }
 
@@ -483,10 +490,20 @@ export default function RoomConfigTab() {
 
               {/* Hover indicator for closing */}
               {isDrawing && roomPoints.length >= 3 && !isRoomComplete && (
-                <div
-                  className="absolute w-8 h-8 rounded-full border-2 border-success border-dashed -translate-x-4 -translate-y-4 pointer-events-none"
-                  style={{ left: roomPoints[0].x, top: roomPoints[0].y }}
-                />
+                <>
+                  <div
+                    className="absolute rounded-full border-2 border-success border-dashed -translate-x-1/2 -translate-y-1/2 pointer-events-none animate-pulse"
+                    style={{ 
+                      left: roomPoints[0].x, 
+                      top: roomPoints[0].y,
+                      width: CLOSE_THRESHOLD * 2,
+                      height: CLOSE_THRESHOLD * 2,
+                    }}
+                  />
+                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-success/90 text-success-foreground px-3 py-1 rounded text-xs font-semibold whitespace-nowrap pointer-events-none">
+                    Click near green point to finish
+                  </div>
+                </>
               )}
 
               {/* Empty state */}
