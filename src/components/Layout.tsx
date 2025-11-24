@@ -13,8 +13,8 @@ const tabs = [
   { id: "patients", label: "Patient Configuration", icon: Users },
   { id: "analytics", label: "AI Analytics", icon: Brain },
   { id: "export", label: "Data Export", icon: Download },
-  { id: "gateway", label: "Gateway Config", icon: Router },
   { id: "room", label: "Room Config", icon: Map },
+  { id: "gateway", label: "Gateway Config", icon: Router },
 ];
 
 export default function Layout({ children, activeTab, onTabChange }: LayoutProps) {
