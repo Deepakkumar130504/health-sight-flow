@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, MapPin, Undo2, Upload, Save, Trash2, X } from "lucide-react";
+import { CheckCircle2, MapPin, Undo2, Upload, Save, Trash2, X, Radio, Edit, Ruler } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,15 +22,24 @@ interface Point {
   y: number;
 }
 
+interface Gateway {
+  x: number;
+  y: number;
+  name: string;
+}
+
 interface RoomData {
   id: string;
   name: string;
+  floorPlanName: string;
   points: Point[];
   floorPlanWidth: number;
   floorPlanHeight: number;
   imageUrl: string;
   canvasWidth: number;
   canvasHeight: number;
+  gateway?: Gateway;
+  distanceToGateway?: number;
 }
 
 export default function RoomConfigTab() {
@@ -38,6 +47,7 @@ export default function RoomConfigTab() {
   const [roomPoints, setRoomPoints] = useState<Point[]>([]);
   const [isRoomComplete, setIsRoomComplete] = useState(false);
   const [floorPlanImage, setFloorPlanImage] = useState<string>("");
+  const [floorPlanName, setFloorPlanName] = useState<string>("");
   const [floorPlanWidth, setFloorPlanWidth] = useState<string>("");
   const [floorPlanHeight, setFloorPlanHeight] = useState<string>("");
   const [canvasDimensions, setCanvasDimensions] = useState({ width: 0, height: 0 });
@@ -45,6 +55,12 @@ export default function RoomConfigTab() {
   const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
   const [roomName, setRoomName] = useState<string>("");
   const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
+  const [isPlacingGateway, setIsPlacingGateway] = useState(false);
+  const [gatewayPoint, setGatewayPoint] = useState<Point | null>(null);
+  const [gatewayName, setGatewayName] = useState<string>("");
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [clickedPointIndex, setClickedPointIndex] = useState<number | null>(null);
   const { toast } = useToast();
 
   const CLOSE_THRESHOLD = 40; // pixels - distance to close the polygon
@@ -72,23 +88,62 @@ export default function RoomConfigTab() {
   };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isRoomComplete) return;
-
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Check if clicking near an existing point to select it
+    // Handle gateway placement mode
+    if (isPlacingGateway) {
+      setGatewayPoint({ x, y });
+      toast({
+        title: "Gateway placed!",
+        description: "Enter a name for the gateway.",
+      });
+      return;
+    }
+
+    if (isRoomComplete) return;
+
+    const currentTime = Date.now();
+    const timeDiff = currentTime - lastClickTime;
+
+    // Check if clicking near an existing point
+    let nearPointIndex = -1;
     for (let i = 0; i < roomPoints.length; i++) {
       const point = roomPoints[i];
       const distance = Math.sqrt(
         Math.pow(x - point.x, 2) + Math.pow(y - point.y, 2)
       );
       if (distance <= 10) {
-        setSelectedPointIndex(i);
+        nearPointIndex = i;
+        break;
+      }
+    }
+
+    if (nearPointIndex >= 0) {
+      // Double-click detection (within 300ms)
+      if (timeDiff < 300 && clickedPointIndex === nearPointIndex) {
+        // Double-click: delete the point
+        const newPoints = roomPoints.filter((_, index) => index !== nearPointIndex);
+        setRoomPoints(newPoints);
+        setSelectedPointIndex(null);
+        setClickedPointIndex(null);
+        toast({
+          title: "Point deleted",
+          description: "Double-clicked point has been removed.",
+        });
+        return;
+      } else {
+        // Single click: select the point
+        setSelectedPointIndex(nearPointIndex);
+        setClickedPointIndex(nearPointIndex);
+        setLastClickTime(currentTime);
         return;
       }
     }
+
+    setLastClickTime(currentTime);
+    setClickedPointIndex(null);
 
     // Check if clicking near the starting point to close the room
     if (roomPoints.length >= 3) {
@@ -105,7 +160,6 @@ export default function RoomConfigTab() {
         });
         return;
       } else if (distance <= CLOSE_THRESHOLD + 20) {
-        // Near but not close enough
         toast({
           title: "Almost there!",
           description: "Click closer to the green starting point to complete the room.",
@@ -137,6 +191,25 @@ export default function RoomConfigTab() {
     setIsRoomComplete(false);
     setSelectedPointIndex(null);
     setRoomName("");
+    setIsPlacingGateway(false);
+    setGatewayPoint(null);
+    setGatewayName("");
+    setEditingRoomId(null);
+  };
+
+  const calculateDistance = (p1: Point, p2: Point, widthMeters: number, heightMeters: number, canvasWidth: number, canvasHeight: number): number => {
+    const pixelToMeterX = widthMeters / canvasWidth;
+    const pixelToMeterY = heightMeters / canvasHeight;
+    const deltaX = Math.abs(p1.x - p2.x) * pixelToMeterX;
+    const deltaY = Math.abs(p1.y - p2.y) * pixelToMeterY;
+    return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  };
+
+  const getRoomCenter = (points: Point[]): Point => {
+    return {
+      x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
+      y: points.reduce((sum, p) => sum + p.y, 0) / points.length,
+    };
   };
 
   const deleteSelectedPoint = () => {
@@ -152,24 +225,98 @@ export default function RoomConfigTab() {
   };
 
   const saveRoomData = () => {
-    if (!isRoomComplete || !floorPlanWidth || !floorPlanHeight || !roomName.trim()) {
+    if (!isRoomComplete || !floorPlanWidth || !floorPlanHeight || !roomName.trim() || !floorPlanName.trim()) {
       toast({
         title: "Cannot save",
-        description: "Please complete the room, enter floor plan dimensions, and provide a room name.",
+        description: "Please complete all fields including floor plan name.",
         variant: "destructive",
       });
       return;
     }
 
+    if (editingRoomId) {
+      // Update existing room
+      const updatedRooms = savedRooms.map(room => {
+        if (room.id === editingRoomId) {
+          let distanceToGateway = room.distanceToGateway;
+          if (gatewayPoint) {
+            const roomCenter = getRoomCenter(roomPoints);
+            distanceToGateway = calculateDistance(
+              roomCenter,
+              gatewayPoint,
+              parseFloat(floorPlanWidth),
+              parseFloat(floorPlanHeight),
+              canvasDimensions.width,
+              canvasDimensions.height
+            );
+          }
+          
+          return {
+            ...room,
+            name: roomName.trim(),
+            floorPlanName: floorPlanName.trim(),
+            points: roomPoints,
+            floorPlanWidth: parseFloat(floorPlanWidth),
+            floorPlanHeight: parseFloat(floorPlanHeight),
+            imageUrl: floorPlanImage,
+            canvasWidth: canvasDimensions.width,
+            canvasHeight: canvasDimensions.height,
+            gateway: gatewayPoint ? { ...gatewayPoint, name: gatewayName.trim() } : room.gateway,
+            distanceToGateway,
+          };
+        }
+        return room;
+      });
+      setSavedRooms(updatedRooms);
+      localStorage.setItem('roomConfigurations', JSON.stringify(updatedRooms));
+      toast({
+        title: "Room updated!",
+        description: `"${roomName}" has been updated.`,
+      });
+      resetRoom();
+      return;
+    }
+
+    // Save new room - prompt for gateway placement
+    setIsPlacingGateway(true);
+    toast({
+      title: "Place Gateway",
+      description: "Click on the map to place the gateway for this room.",
+    });
+  };
+
+  const finalizeRoomSave = () => {
+    if (!gatewayPoint || !gatewayName.trim()) {
+      toast({
+        title: "Cannot save",
+        description: "Please place the gateway and enter a gateway name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const roomCenter = getRoomCenter(roomPoints);
+    const distanceToGateway = calculateDistance(
+      roomCenter,
+      gatewayPoint,
+      parseFloat(floorPlanWidth),
+      parseFloat(floorPlanHeight),
+      canvasDimensions.width,
+      canvasDimensions.height
+    );
+
     const roomData: RoomData = {
       id: Date.now().toString(),
       name: roomName.trim(),
+      floorPlanName: floorPlanName.trim(),
       points: roomPoints,
       floorPlanWidth: parseFloat(floorPlanWidth),
       floorPlanHeight: parseFloat(floorPlanHeight),
       imageUrl: floorPlanImage,
       canvasWidth: canvasDimensions.width,
       canvasHeight: canvasDimensions.height,
+      gateway: { ...gatewayPoint, name: gatewayName.trim() },
+      distanceToGateway,
     };
 
     const updatedRooms = [...savedRooms, roomData];
@@ -178,7 +325,7 @@ export default function RoomConfigTab() {
     
     toast({
       title: "Room saved!",
-      description: `"${roomName}" saved with ${roomPoints.length} points.`,
+      description: `"${roomName}" saved with gateway "${gatewayName}".`,
     });
 
     resetRoom();
@@ -193,6 +340,27 @@ export default function RoomConfigTab() {
     toast({
       title: "Room deleted",
       description: "Room has been removed.",
+    });
+  };
+
+  const editRoom = (room: RoomData) => {
+    setEditingRoomId(room.id);
+    setRoomName(room.name);
+    setFloorPlanName(room.floorPlanName);
+    setFloorPlanWidth(room.floorPlanWidth.toString());
+    setFloorPlanHeight(room.floorPlanHeight.toString());
+    setFloorPlanImage(room.imageUrl);
+    setRoomPoints(room.points);
+    setIsDrawing(true);
+    setIsRoomComplete(true);
+    setCanvasDimensions({ width: room.canvasWidth, height: room.canvasHeight });
+    if (room.gateway) {
+      setGatewayPoint(room.gateway);
+      setGatewayName(room.gateway.name);
+    }
+    toast({
+      title: "Editing room",
+      description: `Editing "${room.name}". Modify and save when ready.`,
     });
   };
 
@@ -215,6 +383,16 @@ export default function RoomConfigTab() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="floor-plan-name">Floor Plan Name</Label>
+              <Input
+                id="floor-plan-name"
+                placeholder="e.g., Building A - Floor 1"
+                value={floorPlanName}
+                onChange={(e) => setFloorPlanName(e.target.value)}
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="floor-plan">Upload Floor Plan</Label>
               <Input
@@ -346,7 +524,7 @@ export default function RoomConfigTab() {
                 </>
               )}
 
-              {isRoomComplete && (
+              {isRoomComplete && !isPlacingGateway && (
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="room-name">Room Name</Label>
@@ -362,20 +540,55 @@ export default function RoomConfigTab() {
                     className="w-full gap-2"
                   >
                     <Save className="h-4 w-4" />
-                    Save Room Configuration
+                    {editingRoomId ? "Update Room" : "Continue to Gateway Placement"}
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={resetRoom}
                     className="w-full"
                   >
-                    Draw New Room
+                    Cancel
+                  </Button>
+                </>
+              )}
+
+              {isPlacingGateway && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="gateway-name">Gateway Name</Label>
+                    <Input
+                      id="gateway-name"
+                      placeholder="e.g., Gateway A1"
+                      value={gatewayName}
+                      onChange={(e) => setGatewayName(e.target.value)}
+                    />
+                  </div>
+                  {gatewayPoint && (
+                    <Badge variant="secondary" className="w-full justify-center py-2">
+                      <Radio className="h-3 w-3 mr-2" />
+                      Gateway placed at ({Math.round(gatewayPoint.x)}, {Math.round(gatewayPoint.y)})
+                    </Badge>
+                  )}
+                  <Button 
+                    onClick={finalizeRoomSave}
+                    disabled={!gatewayPoint || !gatewayName.trim()}
+                    className="w-full gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    Save Room & Gateway
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={resetRoom}
+                    className="w-full"
+                  >
+                    Cancel
                   </Button>
                 </>
               )}
             </div>
 
-            {isDrawing && (
+            {isDrawing && !isPlacingGateway && (
               <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Points added:</span>
@@ -386,6 +599,21 @@ export default function RoomConfigTab() {
                     Click near the starting point (green) to complete the room
                   </p>
                 )}
+                <p className="text-xs text-muted-foreground mt-2">
+                  Tip: Double-click any point to delete it
+                </p>
+              </div>
+            )}
+
+            {isPlacingGateway && (
+              <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Radio className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium text-primary">Gateway Placement Mode</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Click on the map to place the gateway for this room
+                </p>
               </div>
             )}
 
@@ -411,6 +639,7 @@ export default function RoomConfigTab() {
           <CardContent>
             <div 
               className={`relative w-full h-96 bg-muted/30 border-2 rounded-lg overflow-hidden ${
+                isPlacingGateway ? "cursor-crosshair border-success" : 
                 isDrawing && !isRoomComplete ? "cursor-crosshair border-primary" : "border-border"
               }`}
               onClick={handleCanvasClick}
@@ -539,6 +768,19 @@ export default function RoomConfigTab() {
                 </>
               )}
 
+              {/* Gateway point */}
+              {gatewayPoint && (
+                <div
+                  className="absolute rounded-full w-6 h-6 -translate-x-3 -translate-y-3 border-2 border-success bg-success/80 shadow-lg pointer-events-none animate-pulse flex items-center justify-center"
+                  style={{ left: gatewayPoint.x, top: gatewayPoint.y }}
+                >
+                  <Radio className="h-4 w-4 text-white" />
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-success whitespace-nowrap bg-background/90 px-2 py-0.5 rounded">
+                    {gatewayName || "Gateway"}
+                  </div>
+                </div>
+              )}
+
               {/* Empty state */}
               {!isDrawing && !isRoomComplete && savedRooms.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -579,22 +821,63 @@ export default function RoomConfigTab() {
                 {savedRooms.map((room) => (
                   <div
                     key={room.id}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                    className="p-4 border border-border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors space-y-3"
                   >
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-foreground">{room.name}</h4>
-                      <div className="flex gap-4 text-sm text-muted-foreground mt-1">
-                        <span>{room.points.length} points</span>
-                        <span>{room.floorPlanWidth}m × {room.floorPlanHeight}m</span>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-foreground text-lg">{room.name}</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Floor Plan: {room.floorPlanName}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => editRoom(room)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => setDeleteRoomId(room.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => setDeleteRoomId(room.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        <span className="text-muted-foreground">{room.points.length} points</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Ruler className="h-4 w-4 text-primary" />
+                        <span className="text-muted-foreground">{room.floorPlanWidth}m × {room.floorPlanHeight}m</span>
+                      </div>
+                    </div>
+
+                    {room.gateway && (
+                      <div className="pt-3 border-t border-border space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Radio className="h-4 w-4 text-success" />
+                          <span className="font-medium">Gateway: {room.gateway.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>Location: ({Math.round(room.gateway.x)}, {Math.round(room.gateway.y)})</span>
+                        </div>
+                        {room.distanceToGateway && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Ruler className="h-4 w-4 text-primary" />
+                            <span className="text-muted-foreground">
+                              Distance: <span className="font-semibold text-foreground">{room.distanceToGateway.toFixed(2)}m</span>
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
