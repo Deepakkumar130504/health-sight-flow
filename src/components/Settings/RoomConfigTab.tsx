@@ -16,6 +16,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Point {
   x: number;
@@ -154,10 +162,7 @@ export default function RoomConfigTab() {
 
       if (distance <= CLOSE_THRESHOLD) {
         setIsRoomComplete(true);
-        toast({
-          title: "Room completed!",
-          description: `Room outline created with ${roomPoints.length} points. Now enter a room name to save.`,
-        });
+        // Dialog will open automatically via state change
         return;
       } else if (distance <= CLOSE_THRESHOLD + 20) {
         toast({
@@ -437,65 +442,16 @@ export default function RoomConfigTab() {
                 </p>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Instructions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
-              Drawing Instructions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className={`p-3 rounded-lg border-2 ${
-                isDrawing ? "border-primary bg-primary/5" : "border-border bg-muted/30"
-              }`}>
-                <div className="flex items-center gap-2 mb-1">
-                  {isRoomComplete ? (
-                    <CheckCircle2 className="h-5 w-5 text-success" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center text-xs font-bold">
-                      1
-                    </div>
-                  )}
-                  <span className="font-medium">Click to add points</span>
-                </div>
-                <p className="text-sm text-muted-foreground ml-7">
-                  Click on the canvas to define room corners
-                </p>
-              </div>
-
-              <div className={`p-3 rounded-lg border-2 ${
-                roomPoints.length >= 3 && !isRoomComplete ? "border-primary bg-primary/5" : "border-border bg-muted/30"
-              }`}>
-                <div className="flex items-center gap-2 mb-1">
-                  {isRoomComplete ? (
-                    <CheckCircle2 className="h-5 w-5 text-success" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center text-xs font-bold">
-                      2
-                    </div>
-                  )}
-                  <span className="font-medium">Close the room</span>
-                </div>
-                <p className="text-sm text-muted-foreground ml-7">
-                  Click near the starting point to complete the room (min 3 points)
-                </p>
-              </div>
-            </div>
 
             <div className="space-y-2 pt-4">
               {!isDrawing && !isRoomComplete && (
-                <Button onClick={startDrawing} className="w-full">
+                <Button onClick={startDrawing} className="w-full" disabled={!floorPlanImage || !floorPlanWidth || !floorPlanHeight}>
                   Start Drawing Room
                 </Button>
               )}
 
               {isDrawing && !isRoomComplete && (
-                <>
+                <div className="space-y-2">
                   <Button 
                     variant="outline" 
                     onClick={undoLastPoint} 
@@ -521,113 +477,70 @@ export default function RoomConfigTab() {
                   >
                     Cancel
                   </Button>
-                </>
+                </div>
               )}
 
-              {isRoomComplete && !isPlacingGateway && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="room-name">Room Name</Label>
-                    <Input
-                      id="room-name"
-                      placeholder="e.g., Ward A, ICU, Emergency"
-                      value={roomName}
-                      onChange={(e) => setRoomName(e.target.value)}
-                    />
+              {isDrawing && !isPlacingGateway && (
+                <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Points added:</span>
+                    <Badge variant="secondary">{roomPoints.length}</Badge>
                   </div>
-                  <Button 
-                    onClick={saveRoomData}
-                    className="w-full gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    {editingRoomId ? "Update Room" : "Continue to Gateway Placement"}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={resetRoom}
-                    className="w-full"
-                  >
-                    Cancel
-                  </Button>
-                </>
+                  {roomPoints.length >= 3 && !isRoomComplete && (
+                    <p className="text-xs text-primary mt-2">
+                      Click near the starting point (green) to complete the room
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Tip: Double-click any point to delete it
+                  </p>
+                </div>
               )}
 
               {isPlacingGateway && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="gateway-name">Gateway Name</Label>
-                    <Input
-                      id="gateway-name"
-                      placeholder="e.g., Gateway A1"
-                      value={gatewayName}
-                      onChange={(e) => setGatewayName(e.target.value)}
-                    />
+                <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Radio className="h-5 w-5 text-primary" />
+                    <span className="text-sm font-medium text-primary">Gateway Placement Mode</span>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Click on the map to place the gateway for this room
+                  </p>
                   {gatewayPoint && (
-                    <Badge variant="secondary" className="w-full justify-center py-2">
-                      <Radio className="h-3 w-3 mr-2" />
-                      Gateway placed at ({Math.round(gatewayPoint.x)}, {Math.round(gatewayPoint.y)})
-                    </Badge>
+                    <>
+                      <div className="mt-2 space-y-2">
+                        <Label htmlFor="gateway-name">Gateway Name</Label>
+                        <Input
+                          id="gateway-name"
+                          placeholder="e.g., Gateway A1"
+                          value={gatewayName}
+                          onChange={(e) => setGatewayName(e.target.value)}
+                        />
+                      </div>
+                      <Badge variant="secondary" className="w-full justify-center py-2 mt-2">
+                        <Radio className="h-3 w-3 mr-2" />
+                        Gateway at ({Math.round(gatewayPoint.x)}, {Math.round(gatewayPoint.y)})
+                      </Badge>
+                      <Button 
+                        onClick={finalizeRoomSave}
+                        disabled={!gatewayPoint || !gatewayName.trim()}
+                        className="w-full gap-2 mt-2"
+                      >
+                        <Save className="h-4 w-4" />
+                        Save Room & Gateway
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={resetRoom}
+                        className="w-full mt-2"
+                      >
+                        Cancel
+                      </Button>
+                    </>
                   )}
-                  <Button 
-                    onClick={finalizeRoomSave}
-                    disabled={!gatewayPoint || !gatewayName.trim()}
-                    className="w-full gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    Save Room & Gateway
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={resetRoom}
-                    className="w-full"
-                  >
-                    Cancel
-                  </Button>
-                </>
+                </div>
               )}
             </div>
-
-            {isDrawing && !isPlacingGateway && (
-              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Points added:</span>
-                  <Badge variant="secondary">{roomPoints.length}</Badge>
-                </div>
-                {roomPoints.length >= 3 && !isRoomComplete && (
-                  <p className="text-xs text-primary mt-2">
-                    Click near the starting point (green) to complete the room
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground mt-2">
-                  Tip: Double-click any point to delete it
-                </p>
-              </div>
-            )}
-
-            {isPlacingGateway && (
-              <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Radio className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium text-primary">Gateway Placement Mode</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Click on the map to place the gateway for this room
-                </p>
-              </div>
-            )}
-
-            {isRoomComplete && (
-              <div className="mt-4 p-3 bg-success/10 border border-success/20 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-success" />
-                  <span className="text-sm font-medium text-success">Room completed!</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Room outline created with {roomPoints.length} points
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -885,6 +798,47 @@ export default function RoomConfigTab() {
           </Card>
         )}
       </div>
+
+      {/* Room Name Dialog */}
+      <Dialog open={isRoomComplete && !isPlacingGateway && !roomName.trim()} onOpenChange={(open) => {
+        if (!open) {
+          resetRoom();
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enter Room Name</DialogTitle>
+            <DialogDescription>
+              Room outline completed with {roomPoints.length} points. Please enter a name for this room.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="dialog-room-name">Room Name</Label>
+              <Input
+                id="dialog-room-name"
+                placeholder="e.g., Living Room, Ward A, ICU"
+                value={roomName}
+                onChange={(e) => setRoomName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && roomName.trim()) {
+                    saveRoomData();
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetRoom}>
+              Cancel
+            </Button>
+            <Button onClick={saveRoomData} disabled={!roomName.trim()}>
+              Continue to Gateway Placement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteRoomId !== null} onOpenChange={() => setDeleteRoomId(null)}>
