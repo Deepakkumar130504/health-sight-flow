@@ -45,7 +45,7 @@ export default function GatewayConfigTab() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const loadedRooms = localStorage.getItem("savedRooms");
+    const loadedRooms = localStorage.getItem("roomConfigurations");
     if (loadedRooms) {
       setSavedRooms(JSON.parse(loadedRooms));
     }
