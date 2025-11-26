@@ -157,14 +157,18 @@ export default function GatewayConfigTab() {
       lastSeen: new Date().toLocaleString(),
     };
 
-    setGateways([...gateways, updatedGateway]);
+    const newGateways = [...gateways, updatedGateway];
+    setGateways(newGateways);
+    localStorage.setItem("gateways", JSON.stringify(newGateways));
+    
+    // Reset all placement states to hide the map
     setIsPlacingGateway(false);
     setPendingGateway(null);
     setSelectedFloorPlan(null);
 
     toast({
-      title: "Gateway placed successfully!",
-      description: `${updatedGateway.name} has been placed on the map.`,
+      title: "Gateway saved!",
+      description: `${updatedGateway.name} has been placed and saved successfully.`,
     });
   };
 
