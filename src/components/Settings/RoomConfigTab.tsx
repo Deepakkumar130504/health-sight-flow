@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, MapPin, Undo2, Upload, Save, Trash2, X, Radio, Edit, Ruler } from "lucide-react";
+import { MapPin, Undo2, Upload, Trash2, Edit, Ruler } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,12 +30,6 @@ interface Point {
   y: number;
 }
 
-interface Gateway {
-  x: number;
-  y: number;
-  name: string;
-}
-
 interface RoomData {
   id: string;
   name: string;
@@ -46,8 +40,6 @@ interface RoomData {
   imageUrl: string;
   canvasWidth: number;
   canvasHeight: number;
-  gateway?: Gateway;
-  distanceToGateway?: number;
 }
 
 export default function RoomConfigTab() {
@@ -63,12 +55,10 @@ export default function RoomConfigTab() {
   const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
   const [roomName, setRoomName] = useState<string>("");
   const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
-  const [isPlacingGateway, setIsPlacingGateway] = useState(false);
-  const [gatewayPoint, setGatewayPoint] = useState<Point | null>(null);
-  const [gatewayName, setGatewayName] = useState<string>("");
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [lastClickTime, setLastClickTime] = useState<number>(0);
   const [clickedPointIndex, setClickedPointIndex] = useState<number | null>(null);
+  const [showRoomNameDialog, setShowRoomNameDialog] = useState(false);
   const { toast } = useToast();
 
   const CLOSE_THRESHOLD = 40; // pixels - distance to close the polygon
@@ -99,16 +89,6 @@ export default function RoomConfigTab() {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-
-    // Handle gateway placement mode
-    if (isPlacingGateway) {
-      setGatewayPoint({ x, y });
-      toast({
-        title: "Gateway placed!",
-        description: "Enter a name for the gateway.",
-      });
-      return;
-    }
 
     if (isRoomComplete) return;
 
@@ -162,7 +142,7 @@ export default function RoomConfigTab() {
 
       if (distance <= CLOSE_THRESHOLD) {
         setIsRoomComplete(true);
-        // Dialog will open automatically via state change
+        setShowRoomNameDialog(true);
         return;
       } else if (distance <= CLOSE_THRESHOLD + 20) {
         toast({
@@ -196,25 +176,8 @@ export default function RoomConfigTab() {
     setIsRoomComplete(false);
     setSelectedPointIndex(null);
     setRoomName("");
-    setIsPlacingGateway(false);
-    setGatewayPoint(null);
-    setGatewayName("");
     setEditingRoomId(null);
-  };
-
-  const calculateDistance = (p1: Point, p2: Point, widthMeters: number, heightMeters: number, canvasWidth: number, canvasHeight: number): number => {
-    const pixelToMeterX = widthMeters / canvasWidth;
-    const pixelToMeterY = heightMeters / canvasHeight;
-    const deltaX = Math.abs(p1.x - p2.x) * pixelToMeterX;
-    const deltaY = Math.abs(p1.y - p2.y) * pixelToMeterY;
-    return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-  };
-
-  const getRoomCenter = (points: Point[]): Point => {
-    return {
-      x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
-      y: points.reduce((sum, p) => sum + p.y, 0) / points.length,
-    };
+    setShowRoomNameDialog(false);
   };
 
   const deleteSelectedPoint = () => {
@@ -233,85 +196,14 @@ export default function RoomConfigTab() {
     if (!isRoomComplete || !floorPlanWidth || !floorPlanHeight || !roomName.trim() || !floorPlanName.trim()) {
       toast({
         title: "Cannot save",
-        description: "Please complete all fields including floor plan name.",
+        description: "Please complete all fields including room name.",
         variant: "destructive",
       });
       return;
     }
-
-    if (editingRoomId) {
-      // Update existing room
-      const updatedRooms = savedRooms.map(room => {
-        if (room.id === editingRoomId) {
-          let distanceToGateway = room.distanceToGateway;
-          if (gatewayPoint) {
-            const roomCenter = getRoomCenter(roomPoints);
-            distanceToGateway = calculateDistance(
-              roomCenter,
-              gatewayPoint,
-              parseFloat(floorPlanWidth),
-              parseFloat(floorPlanHeight),
-              canvasDimensions.width,
-              canvasDimensions.height
-            );
-          }
-          
-          return {
-            ...room,
-            name: roomName.trim(),
-            floorPlanName: floorPlanName.trim(),
-            points: roomPoints,
-            floorPlanWidth: parseFloat(floorPlanWidth),
-            floorPlanHeight: parseFloat(floorPlanHeight),
-            imageUrl: floorPlanImage,
-            canvasWidth: canvasDimensions.width,
-            canvasHeight: canvasDimensions.height,
-            gateway: gatewayPoint ? { ...gatewayPoint, name: gatewayName.trim() } : room.gateway,
-            distanceToGateway,
-          };
-        }
-        return room;
-      });
-      setSavedRooms(updatedRooms);
-      localStorage.setItem('roomConfigurations', JSON.stringify(updatedRooms));
-      toast({
-        title: "Room updated!",
-        description: `"${roomName}" has been updated.`,
-      });
-      resetRoom();
-      return;
-    }
-
-    // Save new room - prompt for gateway placement
-    setIsPlacingGateway(true);
-    toast({
-      title: "Place Gateway",
-      description: "Click on the map to place the gateway for this room.",
-    });
-  };
-
-  const finalizeRoomSave = () => {
-    if (!gatewayPoint || !gatewayName.trim()) {
-      toast({
-        title: "Cannot save",
-        description: "Please place the gateway and enter a gateway name.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const roomCenter = getRoomCenter(roomPoints);
-    const distanceToGateway = calculateDistance(
-      roomCenter,
-      gatewayPoint,
-      parseFloat(floorPlanWidth),
-      parseFloat(floorPlanHeight),
-      canvasDimensions.width,
-      canvasDimensions.height
-    );
 
     const roomData: RoomData = {
-      id: Date.now().toString(),
+      id: editingRoomId || Date.now().toString(),
       name: roomName.trim(),
       floorPlanName: floorPlanName.trim(),
       points: roomPoints,
@@ -320,19 +212,25 @@ export default function RoomConfigTab() {
       imageUrl: floorPlanImage,
       canvasWidth: canvasDimensions.width,
       canvasHeight: canvasDimensions.height,
-      gateway: { ...gatewayPoint, name: gatewayName.trim() },
-      distanceToGateway,
     };
 
-    const updatedRooms = [...savedRooms, roomData];
+    let updatedRooms: RoomData[];
+    if (editingRoomId) {
+      updatedRooms = savedRooms.map(room => room.id === editingRoomId ? roomData : room);
+      toast({
+        title: "Room updated!",
+        description: `"${roomName}" has been updated.`,
+      });
+    } else {
+      updatedRooms = [...savedRooms, roomData];
+      toast({
+        title: "Room saved!",
+        description: `"${roomName}" has been saved successfully.`,
+      });
+    }
+
     setSavedRooms(updatedRooms);
     localStorage.setItem('roomConfigurations', JSON.stringify(updatedRooms));
-    
-    toast({
-      title: "Room saved!",
-      description: `"${roomName}" saved with gateway "${gatewayName}".`,
-    });
-
     resetRoom();
   };
 
@@ -359,10 +257,6 @@ export default function RoomConfigTab() {
     setIsDrawing(true);
     setIsRoomComplete(true);
     setCanvasDimensions({ width: room.canvasWidth, height: room.canvasHeight });
-    if (room.gateway) {
-      setGatewayPoint(room.gateway);
-      setGatewayName(room.gateway.name);
-    }
     toast({
       title: "Editing room",
       description: `Editing "${room.name}". Modify and save when ready.`,
@@ -480,7 +374,7 @@ export default function RoomConfigTab() {
                 </div>
               )}
 
-              {isDrawing && !isPlacingGateway && (
+              {isDrawing && (
                 <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Points added:</span>
@@ -496,50 +390,6 @@ export default function RoomConfigTab() {
                   </p>
                 </div>
               )}
-
-              {isPlacingGateway && (
-                <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Radio className="h-5 w-5 text-primary" />
-                    <span className="text-sm font-medium text-primary">Gateway Placement Mode</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Click on the map to place the gateway for this room
-                  </p>
-                  {gatewayPoint && (
-                    <>
-                      <div className="mt-2 space-y-2">
-                        <Label htmlFor="gateway-name">Gateway Name</Label>
-                        <Input
-                          id="gateway-name"
-                          placeholder="e.g., Gateway A1"
-                          value={gatewayName}
-                          onChange={(e) => setGatewayName(e.target.value)}
-                        />
-                      </div>
-                      <Badge variant="secondary" className="w-full justify-center py-2 mt-2">
-                        <Radio className="h-3 w-3 mr-2" />
-                        Gateway at ({Math.round(gatewayPoint.x)}, {Math.round(gatewayPoint.y)})
-                      </Badge>
-                      <Button 
-                        onClick={finalizeRoomSave}
-                        disabled={!gatewayPoint || !gatewayName.trim()}
-                        className="w-full gap-2 mt-2"
-                      >
-                        <Save className="h-4 w-4" />
-                        Save Room & Gateway
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={resetRoom}
-                        className="w-full mt-2"
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -552,37 +402,38 @@ export default function RoomConfigTab() {
           <CardContent>
             <div 
               className={`relative w-full h-96 bg-muted/30 border-2 rounded-lg overflow-hidden ${
-                isPlacingGateway ? "cursor-crosshair border-success" : 
                 isDrawing && !isRoomComplete ? "cursor-crosshair border-primary" : "border-border"
               }`}
               onClick={handleCanvasClick}
-              ref={(el) => {
-                if (el && canvasDimensions.width === 0) {
-                  setCanvasDimensions({ width: el.offsetWidth, height: el.offsetHeight });
-                }
+              onLoad={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setCanvasDimensions({ width: rect.width, height: rect.height });
               }}
             >
-              {/* Background image */}
+              {/* Background floor plan image */}
               {floorPlanImage && (
-                <img 
-                  src={floorPlanImage} 
-                  alt="Floor plan" 
-                  className="absolute inset-0 w-full h-full object-contain opacity-60"
+                <img
+                  src={floorPlanImage}
+                  alt="Floor plan"
+                  className="absolute inset-0 w-full h-full object-contain opacity-50 pointer-events-none"
                 />
               )}
-              {/* SVG for drawing lines and polygon */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                {/* Draw all saved rooms with different colors */}
+
+              {/* SVG layer for lines and shapes */}
+              <svg
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{ zIndex: 1 }}
+              >
+                {/* Draw saved rooms */}
                 {savedRooms.map((room, roomIndex) => {
-                  const hue = (roomIndex * 137.5) % 360; // Golden angle for color distribution
+                  const hue = (roomIndex * 137.5) % 360;
                   return (
                     <g key={room.id}>
                       <polygon
                         points={room.points.map(p => `${p.x},${p.y}`).join(' ')}
-                        fill={`hsl(${hue}, 70%, 50%, 0.15)`}
+                        fill={`hsla(${hue}, 70%, 50%, 0.1)`}
                         stroke={`hsl(${hue}, 70%, 45%)`}
                         strokeWidth="2"
-                        className="transition-all"
                       />
                       {/* Room label */}
                       {room.points.length > 0 && (
@@ -681,19 +532,6 @@ export default function RoomConfigTab() {
                 </>
               )}
 
-              {/* Gateway point */}
-              {gatewayPoint && (
-                <div
-                  className="absolute rounded-full w-6 h-6 -translate-x-3 -translate-y-3 border-2 border-success bg-success/80 shadow-lg pointer-events-none animate-pulse flex items-center justify-center"
-                  style={{ left: gatewayPoint.x, top: gatewayPoint.y }}
-                >
-                  <Radio className="h-4 w-4 text-white" />
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-success whitespace-nowrap bg-background/90 px-2 py-0.5 rounded">
-                    {gatewayName || "Gateway"}
-                  </div>
-                </div>
-              )}
-
               {/* Empty state */}
               {!isDrawing && !isRoomComplete && savedRooms.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -771,26 +609,6 @@ export default function RoomConfigTab() {
                         <span className="text-muted-foreground">{room.floorPlanWidth}m × {room.floorPlanHeight}m</span>
                       </div>
                     </div>
-
-                    {room.gateway && (
-                      <div className="pt-3 border-t border-border space-y-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Radio className="h-4 w-4 text-success" />
-                          <span className="font-medium">Gateway: {room.gateway.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>Location: ({Math.round(room.gateway.x)}, {Math.round(room.gateway.y)})</span>
-                        </div>
-                        {room.distanceToGateway && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Ruler className="h-4 w-4 text-primary" />
-                            <span className="text-muted-foreground">
-                              Distance: <span className="font-semibold text-foreground">{room.distanceToGateway.toFixed(2)}m</span>
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -800,7 +618,7 @@ export default function RoomConfigTab() {
       </div>
 
       {/* Room Name Dialog */}
-      <Dialog open={isRoomComplete && !isPlacingGateway && !roomName.trim()} onOpenChange={(open) => {
+      <Dialog open={showRoomNameDialog} onOpenChange={(open) => {
         if (!open) {
           resetRoom();
         }
@@ -834,7 +652,7 @@ export default function RoomConfigTab() {
               Cancel
             </Button>
             <Button onClick={saveRoomData} disabled={!roomName.trim()}>
-              Continue to Gateway Placement
+              Save Room
             </Button>
           </DialogFooter>
         </DialogContent>
