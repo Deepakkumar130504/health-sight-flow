@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Smartphone, CheckCircle, XCircle, Trash2, AlertCircle } from "lucide-react";
+import { Smartphone, CheckCircle, Trash2 } from "lucide-react";
 
-type DeviceStatus = "available" | "in-use" | "not-in-use" | "scrap";
+type DeviceStatus = "available" | "in-use" | "scrap";
 
 interface Device {
   id: string;
@@ -18,20 +18,19 @@ interface Device {
 const initialDevices: Device[] = [
   { id: "DEV-001", name: "Tracker Alpha", type: "BLE Tag", status: "available", lastSeen: "2 min ago", batteryLevel: 85 },
   { id: "DEV-002", name: "Tracker Beta", type: "BLE Tag", status: "in-use", lastSeen: "Just now", batteryLevel: 92 },
-  { id: "DEV-003", name: "Tracker Gamma", type: "WiFi Tag", status: "not-in-use", lastSeen: "1 hour ago", batteryLevel: 45 },
+  { id: "DEV-003", name: "Tracker Gamma", type: "WiFi Tag", status: "available", lastSeen: "1 hour ago", batteryLevel: 45 },
   { id: "DEV-004", name: "Tracker Delta", type: "BLE Tag", status: "available", lastSeen: "5 min ago", batteryLevel: 78 },
   { id: "DEV-005", name: "Tracker Epsilon", type: "WiFi Tag", status: "in-use", lastSeen: "Just now", batteryLevel: 60 },
-  { id: "DEV-006", name: "Tracker Zeta", type: "BLE Tag", status: "not-in-use", lastSeen: "3 hours ago", batteryLevel: 20 },
+  { id: "DEV-006", name: "Tracker Zeta", type: "BLE Tag", status: "available", lastSeen: "3 hours ago", batteryLevel: 20 },
   { id: "DEV-007", name: "Tracker Eta", type: "WiFi Tag", status: "scrap", lastSeen: "1 week ago", batteryLevel: 0 },
   { id: "DEV-008", name: "Tracker Theta", type: "BLE Tag", status: "available", lastSeen: "10 min ago", batteryLevel: 95 },
-  { id: "DEV-009", name: "Tracker Iota", type: "WiFi Tag", status: "not-in-use", lastSeen: "2 days ago", batteryLevel: 15 },
+  { id: "DEV-009", name: "Tracker Iota", type: "WiFi Tag", status: "available", lastSeen: "2 days ago", batteryLevel: 15 },
   { id: "DEV-010", name: "Tracker Kappa", type: "BLE Tag", status: "scrap", lastSeen: "2 weeks ago", batteryLevel: 0 },
 ];
 
 const statusConfig: Record<DeviceStatus, { label: string; color: string; icon: React.ElementType }> = {
   "available": { label: "Available", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", icon: CheckCircle },
   "in-use": { label: "In Use", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Smartphone },
-  "not-in-use": { label: "Not in Use", color: "bg-amber-500/20 text-amber-400 border-amber-500/30", icon: AlertCircle },
   "scrap": { label: "Scrap", color: "bg-destructive/20 text-destructive border-destructive/30", icon: Trash2 },
 };
 
@@ -43,7 +42,7 @@ export default function DeviceListTab() {
     setDevices(prev =>
       prev.map(device =>
         device.id === deviceId
-          ? { ...device, status: toScrap ? "scrap" : "not-in-use" }
+          ? { ...device, status: (toScrap ? "scrap" : "available") as DeviceStatus }
           : device
       )
     );
@@ -57,7 +56,6 @@ export default function DeviceListTab() {
     all: devices.length,
     available: devices.filter(d => d.status === "available").length,
     "in-use": devices.filter(d => d.status === "in-use").length,
-    "not-in-use": devices.filter(d => d.status === "not-in-use").length,
     scrap: devices.filter(d => d.status === "scrap").length,
   };
 
@@ -70,7 +68,7 @@ export default function DeviceListTab() {
 
       {/* Status Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {(["available", "in-use", "not-in-use", "scrap"] as DeviceStatus[]).map((status) => {
+        {(["available", "in-use", "scrap"] as DeviceStatus[]).map((status) => {
           const config = statusConfig[status];
           const Icon = config.icon;
           return (
@@ -147,8 +145,8 @@ export default function DeviceListTab() {
                       {config.label}
                     </Badge>
 
-                    {/* Toggle for Not in Use devices */}
-                    {device.status === "not-in-use" && (
+                    {/* Toggle for Available devices to move to Scrap */}
+                    {device.status === "available" && (
                       <div className="flex items-center gap-2 ml-4">
                         <span className="text-xs text-muted-foreground">Move to Scrap</span>
                         <Switch
