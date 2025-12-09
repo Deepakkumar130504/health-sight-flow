@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { LayoutDashboard, Users, Brain, Download, Router, Map } from "lucide-react";
+import { LayoutDashboard, Users, Brain, Download, Router, Map, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LayoutProps {
@@ -10,6 +10,7 @@ interface LayoutProps {
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "devices", label: "Device List", icon: Smartphone },
   { id: "patients", label: "Patient Configuration", icon: Users },
   { id: "analytics", label: "AI Analytics", icon: Brain },
   { id: "export", label: "Data Export", icon: Download },
