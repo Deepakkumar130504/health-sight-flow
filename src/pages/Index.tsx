@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
 import DashboardTab from "@/components/Dashboard/DashboardTab";
+import DeviceListTab from "@/components/DeviceList/DeviceListTab";
 import PatientConfigTab from "@/components/PatientConfig/PatientConfigTab";
 import AnalyticsTab from "@/components/Analytics/AnalyticsTab";
 import ExportTab from "@/components/Export/ExportTab";
@@ -14,6 +15,8 @@ const Index = () => {
     switch (activeTab) {
       case "dashboard":
         return <DashboardTab />;
+      case "devices":
+        return <DeviceListTab />;
       case "patients":
         return <PatientConfigTab />;
       case "analytics":
