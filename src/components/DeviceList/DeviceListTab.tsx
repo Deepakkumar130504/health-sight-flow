@@ -140,17 +140,13 @@ export default function DeviceListTab() {
                     </div>
                     <div>
                       <p className="font-semibold text-lg">{device.name}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{device.id} • {device.type}</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {device.id} • {device.type} • <span className={`${device.batteryLevel < 20 ? 'text-red-500' : device.batteryLevel < 50 ? 'text-yellow-500' : 'text-green-500'}`}>{device.batteryLevel}%</span>
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-8">
-                    <div className="text-center min-w-[60px]">
-                      <p className="text-xs text-muted-foreground">Battery</p>
-                      <p className={`text-sm font-medium ${device.batteryLevel < 20 ? 'text-red-500' : device.batteryLevel < 50 ? 'text-yellow-500' : 'text-green-500'}`}>
-                        {device.batteryLevel}%
-                      </p>
-                    </div>
 
                     <Badge variant="outline" className={`${config.bgColor} ${config.color} border-transparent px-4 py-1.5 text-sm`}>
                       {config.label}
