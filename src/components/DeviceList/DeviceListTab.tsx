@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Smartphone, CheckCircle, Trash2 } from "lucide-react";
+import { Smartphone, CheckCircle, Trash2, Package } from "lucide-react";
 
 type DeviceStatus = "available" | "in-use" | "scrap";
 
@@ -28,10 +28,10 @@ const initialDevices: Device[] = [
   { id: "DEV-010", name: "Tracker Kappa", type: "BLE Tag", status: "scrap", lastSeen: "2 weeks ago", batteryLevel: 0 },
 ];
 
-const statusConfig: Record<DeviceStatus, { label: string; color: string; icon: React.ElementType }> = {
-  "available": { label: "Available", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", icon: CheckCircle },
-  "in-use": { label: "In Use", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Smartphone },
-  "scrap": { label: "Scrap", color: "bg-destructive/20 text-destructive border-destructive/30", icon: Trash2 },
+const statusConfig: Record<DeviceStatus, { label: string; color: string; bgColor: string; icon: React.ElementType }> = {
+  "available": { label: "Available", color: "text-green-600 dark:text-green-400", bgColor: "bg-green-100 dark:bg-green-900/30", icon: CheckCircle },
+  "in-use": { label: "In Use", color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-100 dark:bg-blue-900/30", icon: Smartphone },
+  "scrap": { label: "Scrap", color: "text-red-600 dark:text-red-400", bgColor: "bg-red-100 dark:bg-red-900/30", icon: Trash2 },
 };
 
 export default function DeviceListTab() {
@@ -68,6 +68,22 @@ export default function DeviceListTab() {
 
       {/* Status Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Total Devices Card */}
+        <Card 
+          className={`cursor-pointer transition-all hover:scale-105 ${activeFilter === "all" ? 'ring-2 ring-primary' : ''}`}
+          onClick={() => setActiveFilter("all")}
+        >
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+              <Package className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{counts.all}</p>
+              <p className="text-sm text-muted-foreground">Total Devices</p>
+            </div>
+          </CardContent>
+        </Card>
+
         {(["available", "in-use", "scrap"] as DeviceStatus[]).map((status) => {
           const config = statusConfig[status];
           const Icon = config.icon;
@@ -78,7 +94,7 @@ export default function DeviceListTab() {
               onClick={() => setActiveFilter(activeFilter === status ? "all" : status)}
             >
               <CardContent className="p-4 flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${config.color}`}>
+                <div className={`p-2 rounded-lg ${config.bgColor} ${config.color}`}>
                   <Icon className="h-5 w-5" />
                 </div>
                 <div>
@@ -119,7 +135,7 @@ export default function DeviceListTab() {
                   className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg ${config.color}`}>
+                    <div className={`p-2 rounded-lg ${config.bgColor} ${config.color}`}>
                       <Icon className="h-5 w-5" />
                     </div>
                     <div>
@@ -136,12 +152,12 @@ export default function DeviceListTab() {
 
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">Battery</p>
-                      <p className={`text-sm font-medium ${device.batteryLevel < 20 ? 'text-destructive' : device.batteryLevel < 50 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                      <p className={`text-sm font-medium ${device.batteryLevel < 20 ? 'text-red-500' : device.batteryLevel < 50 ? 'text-yellow-500' : 'text-green-500'}`}>
                         {device.batteryLevel}%
                       </p>
                     </div>
 
-                    <Badge variant="outline" className={config.color}>
+                    <Badge variant="outline" className={`${config.bgColor} ${config.color} border-transparent`}>
                       {config.label}
                     </Badge>
 
