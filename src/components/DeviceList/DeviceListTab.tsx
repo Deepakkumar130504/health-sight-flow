@@ -145,9 +145,9 @@ export default function DeviceListTab() {
                   </div>
 
                   <div className="flex items-center gap-8">
-                    <div className="text-center min-w-[80px]">
-                      <p className="text-xs text-muted-foreground mb-1">Battery</p>
-                      <p className={`text-lg font-semibold ${device.batteryLevel < 20 ? 'text-red-500' : device.batteryLevel < 50 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    <div className="text-center min-w-[60px]">
+                      <p className="text-xs text-muted-foreground">Battery</p>
+                      <p className={`text-sm font-medium ${device.batteryLevel < 20 ? 'text-red-500' : device.batteryLevel < 50 ? 'text-yellow-500' : 'text-green-500'}`}>
                         {device.batteryLevel}%
                       </p>
                     </div>
