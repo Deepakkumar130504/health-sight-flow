@@ -124,7 +124,7 @@ export default function DeviceListTab() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filteredDevices.map((device) => {
               const config = statusConfig[device.status];
               const Icon = config.icon;
@@ -132,39 +132,34 @@ export default function DeviceListTab() {
               return (
                 <div
                   key={device.id}
-                  className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  className="flex items-center justify-between p-5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors border border-border/50"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg ${config.bgColor} ${config.color}`}>
-                      <Icon className="h-5 w-5" />
+                  <div className="flex items-center gap-5">
+                    <div className={`p-3 rounded-xl ${config.bgColor} ${config.color}`}>
+                      <Icon className="h-6 w-6" />
                     </div>
                     <div>
-                      <p className="font-medium">{device.name}</p>
-                      <p className="text-sm text-muted-foreground">{device.id} • {device.type}</p>
+                      <p className="font-semibold text-lg">{device.name}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{device.id} • {device.type}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-6">
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Last seen</p>
-                      <p className="text-sm font-medium">{device.lastSeen}</p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Battery</p>
-                      <p className={`text-sm font-medium ${device.batteryLevel < 20 ? 'text-red-500' : device.batteryLevel < 50 ? 'text-yellow-500' : 'text-green-500'}`}>
+                  <div className="flex items-center gap-8">
+                    <div className="text-center min-w-[80px]">
+                      <p className="text-xs text-muted-foreground mb-1">Battery</p>
+                      <p className={`text-lg font-semibold ${device.batteryLevel < 20 ? 'text-red-500' : device.batteryLevel < 50 ? 'text-yellow-500' : 'text-green-500'}`}>
                         {device.batteryLevel}%
                       </p>
                     </div>
 
-                    <Badge variant="outline" className={`${config.bgColor} ${config.color} border-transparent`}>
+                    <Badge variant="outline" className={`${config.bgColor} ${config.color} border-transparent px-4 py-1.5 text-sm`}>
                       {config.label}
                     </Badge>
 
                     {/* Toggle for Available devices to move to Scrap */}
                     {device.status === "available" && (
-                      <div className="flex items-center gap-2 ml-4">
-                        <span className="text-xs text-muted-foreground">Move to Scrap</span>
+                      <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
+                        <span className="text-sm text-muted-foreground">Move to Scrap</span>
                         <Switch
                           checked={false}
                           onCheckedChange={(checked) => handleScrapToggle(device.id, checked)}
@@ -174,8 +169,8 @@ export default function DeviceListTab() {
 
                     {/* Toggle for Scrap devices to restore */}
                     {device.status === "scrap" && (
-                      <div className="flex items-center gap-2 ml-4">
-                        <span className="text-xs text-muted-foreground">Restore</span>
+                      <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
+                        <span className="text-sm text-muted-foreground">Restore</span>
                         <Switch
                           checked={true}
                           onCheckedChange={(checked) => handleScrapToggle(device.id, checked)}
@@ -188,7 +183,7 @@ export default function DeviceListTab() {
             })}
 
             {filteredDevices.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-12 text-muted-foreground">
                 No devices found with this status
               </div>
             )}
