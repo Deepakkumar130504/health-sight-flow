@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { CircleCheck, Activity, CircleOff, Layers, Radio, Wifi } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CircleCheck, Activity, CircleOff, Layers, Radio, Wifi, Battery } from "lucide-react";
 
 type DeviceStatus = "available" | "in-use" | "scrap";
 
@@ -41,6 +42,7 @@ const getDeviceIcon = (type: string) => {
 export default function DeviceListTab() {
   const [devices, setDevices] = useState<Device[]>(initialDevices);
   const [activeFilter, setActiveFilter] = useState<DeviceStatus | "all">("all");
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
   const handleScrapToggle = (deviceId: string, toScrap: boolean) => {
     setDevices(prev =>
@@ -50,6 +52,10 @@ export default function DeviceListTab() {
           : device
       )
     );
+    // Update selected device if it's the one being changed
+    if (selectedDevice?.id === deviceId) {
+      setSelectedDevice(prev => prev ? { ...prev, status: (toScrap ? "scrap" : "available") as DeviceStatus } : null);
+    }
   };
 
   const filteredDevices = activeFilter === "all" 
@@ -131,19 +137,17 @@ export default function DeviceListTab() {
           <div className="space-y-4">
             {filteredDevices.map((device) => {
               const config = statusConfig[device.status];
-              const Icon = config.icon;
+              const DeviceIcon = getDeviceIcon(device.type);
               
               return (
                 <div
                   key={device.id}
-                  className="flex items-center justify-between p-5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors border border-border/50"
+                  onClick={() => setSelectedDevice(device)}
+                  className="flex items-center justify-between p-5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors border border-border/50 cursor-pointer"
                 >
                   <div className="flex items-center gap-5">
                     <div className={`p-3 rounded-xl ${config.bgColor} ${config.color}`}>
-                      {(() => {
-                        const DeviceIcon = getDeviceIcon(device.type);
-                        return <DeviceIcon className="h-6 w-6" />;
-                      })()}
+                      <DeviceIcon className="h-6 w-6" />
                     </div>
                     <div>
                       <p className="font-semibold text-lg">{device.name}</p>
@@ -153,34 +157,9 @@ export default function DeviceListTab() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-8">
-
-                    <Badge variant="outline" className={`${config.bgColor} ${config.color} border-transparent px-4 py-1.5 text-sm`}>
-                      {config.label}
-                    </Badge>
-
-                    {/* Toggle for Available devices to move to Scrap */}
-                    {device.status === "available" && (
-                      <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
-                        <span className="text-sm text-muted-foreground">Move to Scrap</span>
-                        <Switch
-                          checked={false}
-                          onCheckedChange={(checked) => handleScrapToggle(device.id, checked)}
-                        />
-                      </div>
-                    )}
-
-                    {/* Toggle for Scrap devices to restore */}
-                    {device.status === "scrap" && (
-                      <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
-                        <span className="text-sm text-muted-foreground">Restore</span>
-                        <Switch
-                          checked={true}
-                          onCheckedChange={(checked) => handleScrapToggle(device.id, checked)}
-                        />
-                      </div>
-                    )}
-                  </div>
+                  <Badge variant="outline" className={`${config.bgColor} ${config.color} border-transparent px-4 py-1.5 text-sm`}>
+                    {config.label}
+                  </Badge>
                 </div>
               );
             })}
@@ -193,6 +172,88 @@ export default function DeviceListTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Device Detail Dialog */}
+      <Dialog open={!!selectedDevice} onOpenChange={(open) => !open && setSelectedDevice(null)}>
+        <DialogContent className="sm:max-w-md">
+          {selectedDevice && (() => {
+            const config = statusConfig[selectedDevice.status];
+            const DeviceIcon = getDeviceIcon(selectedDevice.type);
+            
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${config.bgColor} ${config.color}`}>
+                      <DeviceIcon className="h-5 w-5" />
+                    </div>
+                    {selectedDevice.name}
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Device ID</p>
+                      <p className="font-medium">{selectedDevice.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Type</p>
+                      <p className="font-medium">{selectedDevice.type}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Status</p>
+                      <Badge variant="outline" className={`${config.bgColor} ${config.color} border-transparent mt-1`}>
+                        {config.label}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Battery</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Battery className={`h-4 w-4 ${selectedDevice.batteryLevel < 20 ? 'text-red-500' : selectedDevice.batteryLevel < 50 ? 'text-yellow-500' : 'text-green-500'}`} />
+                        <span className={`font-medium ${selectedDevice.batteryLevel < 20 ? 'text-red-500' : selectedDevice.batteryLevel < 50 ? 'text-yellow-500' : 'text-green-500'}`}>
+                          {selectedDevice.batteryLevel}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-sm text-muted-foreground">Last Seen</p>
+                      <p className="font-medium">{selectedDevice.lastSeen}</p>
+                    </div>
+                  </div>
+
+                  {/* Scrap Toggle */}
+                  {selectedDevice.status === "available" && (
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <div>
+                        <p className="font-medium">Move to Scrap</p>
+                        <p className="text-sm text-muted-foreground">Mark this device as decommissioned</p>
+                      </div>
+                      <Switch
+                        checked={false}
+                        onCheckedChange={(checked) => handleScrapToggle(selectedDevice.id, checked)}
+                      />
+                    </div>
+                  )}
+
+                  {selectedDevice.status === "scrap" && (
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <div>
+                        <p className="font-medium">Restore Device</p>
+                        <p className="text-sm text-muted-foreground">Make this device available again</p>
+                      </div>
+                      <Switch
+                        checked={true}
+                        onCheckedChange={(checked) => handleScrapToggle(selectedDevice.id, checked)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
