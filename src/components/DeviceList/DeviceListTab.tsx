@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Smartphone, CheckCircle, Trash2, Package } from "lucide-react";
+import { CircleCheck, Activity, CircleOff, Layers, Radio, Wifi } from "lucide-react";
 
 type DeviceStatus = "available" | "in-use" | "scrap";
 
@@ -29,9 +29,13 @@ const initialDevices: Device[] = [
 ];
 
 const statusConfig: Record<DeviceStatus, { label: string; color: string; bgColor: string; icon: React.ElementType }> = {
-  "available": { label: "Available", color: "text-green-600 dark:text-green-400", bgColor: "bg-green-100 dark:bg-green-900/30", icon: CheckCircle },
-  "in-use": { label: "In Use", color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-100 dark:bg-blue-900/30", icon: Smartphone },
-  "scrap": { label: "Scrap", color: "text-red-600 dark:text-red-400", bgColor: "bg-red-100 dark:bg-red-900/30", icon: Trash2 },
+  "available": { label: "Available", color: "text-green-600 dark:text-green-400", bgColor: "bg-green-100 dark:bg-green-900/30", icon: CircleCheck },
+  "in-use": { label: "In Use", color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-100 dark:bg-blue-900/30", icon: Activity },
+  "scrap": { label: "Scrap", color: "text-red-600 dark:text-red-400", bgColor: "bg-red-100 dark:bg-red-900/30", icon: CircleOff },
+};
+
+const getDeviceIcon = (type: string) => {
+  return type.toLowerCase().includes("ble") ? Radio : Wifi;
 };
 
 export default function DeviceListTab() {
@@ -75,7 +79,7 @@ export default function DeviceListTab() {
         >
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-              <Package className="h-5 w-5" />
+              <Layers className="h-5 w-5" />
             </div>
             <div>
               <p className="text-2xl font-bold">{counts.all}</p>
@@ -136,7 +140,10 @@ export default function DeviceListTab() {
                 >
                   <div className="flex items-center gap-5">
                     <div className={`p-3 rounded-xl ${config.bgColor} ${config.color}`}>
-                      <Icon className="h-6 w-6" />
+                      {(() => {
+                        const DeviceIcon = getDeviceIcon(device.type);
+                        return <DeviceIcon className="h-6 w-6" />;
+                      })()}
                     </div>
                     <div>
                       <p className="font-semibold text-lg">{device.name}</p>
