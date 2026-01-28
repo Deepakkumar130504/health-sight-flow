@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Users, UserCog, Package, Layers } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import FloorMap from "./FloorMap";
 import DeviceCard from "./DeviceCard";
 
 const mockDevices = [
+  // Patients
   {
     id: "1",
     name: "John Smith",
@@ -25,6 +26,16 @@ const mockDevices = [
     gatewaysUsed: 3,
   },
   {
+    id: "3",
+    name: "Emma Davis",
+    patientId: "P-2024-002",
+    type: "patient",
+    location: { x: 25, y: 45, room: "General-205" },
+    signalStrength: -72,
+    gatewaysUsed: 2,
+  },
+  // Providers
+  {
     id: "2",
     name: "Dr. Sarah Johnson",
     patientId: "PRV-001",
@@ -34,15 +45,6 @@ const mockDevices = [
     gatewaysUsed: 4,
   },
   {
-    id: "3",
-    name: "Emma Davis",
-    patientId: "P-2024-002",
-    type: "patient",
-    location: { x: 25, y: 45, room: "General-205" },
-    signalStrength: -72,
-    gatewaysUsed: 2,
-  },
-  {
     id: "4",
     name: "Nurse Mike Chen",
     patientId: "PRV-002",
@@ -50,6 +52,34 @@ const mockDevices = [
     location: { x: 55, y: 75, room: "ICU-103" },
     signalStrength: -60,
     gatewaysUsed: 3,
+  },
+  // Assets
+  {
+    id: "5",
+    name: "Wheelchair #12",
+    patientId: "AST-001",
+    type: "asset",
+    location: { x: 30, y: 20, room: "General-101" },
+    signalStrength: -55,
+    gatewaysUsed: 2,
+  },
+  {
+    id: "6",
+    name: "IV Pump #45",
+    patientId: "AST-002",
+    type: "asset",
+    location: { x: 60, y: 50, room: "ICU-102" },
+    signalStrength: -62,
+    gatewaysUsed: 3,
+  },
+  {
+    id: "7",
+    name: "Defibrillator #8",
+    patientId: "AST-003",
+    type: "asset",
+    location: { x: 80, y: 65, room: "Ward-B" },
+    signalStrength: -68,
+    gatewaysUsed: 2,
   },
 ];
 
@@ -70,6 +100,7 @@ export default function DashboardTab() {
 
   const patientCount = filteredDevices.filter(d => d.type === "patient").length;
   const providerCount = filteredDevices.filter(d => d.type === "provider").length;
+  const assetCount = filteredDevices.filter(d => d.type === "asset").length;
 
   return (
     <div className="p-6 space-y-6">
@@ -80,34 +111,52 @@ export default function DashboardTab() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="shadow-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Tracked</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{filteredDevices.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Active devices</p>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+              <Layers className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{filteredDevices.length}</p>
+              <p className="text-sm text-muted-foreground">Total Tracked</p>
+            </div>
           </CardContent>
         </Card>
 
         <Card className="shadow-md border-primary/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Patients</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-primary">{patientCount}</div>
-            <p className="text-xs text-muted-foreground mt-1">Currently tracked</p>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <Users className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-primary">{patientCount}</p>
+              <p className="text-sm text-muted-foreground">Patients</p>
+            </div>
           </CardContent>
         </Card>
 
         <Card className="shadow-md border-secondary/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Providers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-secondary">{providerCount}</div>
-            <p className="text-xs text-muted-foreground mt-1">Staff on duty</p>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-secondary/10 text-secondary">
+              <UserCog className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-secondary">{providerCount}</p>
+              <p className="text-sm text-muted-foreground">Providers</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-md border-amber-500/20">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+              <Package className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{assetCount}</p>
+              <p className="text-sm text-muted-foreground">Assets</p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -157,30 +206,42 @@ export default function DashboardTab() {
               </div>
 
               {/* Filters */}
-              <div className="flex gap-2 mt-4">
+              <div className="grid grid-cols-2 gap-2 mt-4">
                 <Button
                   variant={filterType === "all" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilterType("all")}
-                  className="flex-1"
+                  className="flex items-center gap-1.5"
                 >
+                  <Layers className="h-3.5 w-3.5" />
                   All ({mockDevices.length})
                 </Button>
                 <Button
                   variant={filterType === "patient" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilterType("patient")}
-                  className="flex-1"
+                  className="flex items-center gap-1.5"
                 >
+                  <Users className="h-3.5 w-3.5" />
                   Patients
                 </Button>
                 <Button
                   variant={filterType === "provider" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilterType("provider")}
-                  className="flex-1"
+                  className="flex items-center gap-1.5"
                 >
+                  <UserCog className="h-3.5 w-3.5" />
                   Providers
+                </Button>
+                <Button
+                  variant={filterType === "asset" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilterType("asset")}
+                  className="flex items-center gap-1.5"
+                >
+                  <Package className="h-3.5 w-3.5" />
+                  Assets
                 </Button>
               </div>
 
