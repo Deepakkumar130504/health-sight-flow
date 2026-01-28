@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Signal, Radio } from "lucide-react";
+import { MapPin, Signal, Radio, Users, UserCog, Package } from "lucide-react";
 
 interface Device {
   id: string;
@@ -16,8 +16,33 @@ interface DeviceCardProps {
   device: Device;
 }
 
+const typeConfig = {
+  patient: { 
+    label: "Patient", 
+    variant: "default" as const,
+    icon: Users,
+    color: "text-primary",
+    bgColor: "bg-primary/10"
+  },
+  provider: { 
+    label: "Provider", 
+    variant: "secondary" as const,
+    icon: UserCog,
+    color: "text-secondary",
+    bgColor: "bg-secondary/10"
+  },
+  asset: { 
+    label: "Asset", 
+    variant: "outline" as const,
+    icon: Package,
+    color: "text-amber-600 dark:text-amber-400",
+    bgColor: "bg-amber-100 dark:bg-amber-900/30"
+  },
+};
+
 export default function DeviceCard({ device }: DeviceCardProps) {
-  const isPatient = device.type === "patient";
+  const config = typeConfig[device.type as keyof typeof typeConfig] || typeConfig.patient;
+  const TypeIcon = config.icon;
   const signalQuality = device.signalStrength > -60 ? "Excellent" : 
                         device.signalStrength > -70 ? "Good" : "Fair";
   
@@ -25,12 +50,17 @@ export default function DeviceCard({ device }: DeviceCardProps) {
     <Card className="hover:shadow-md transition-shadow cursor-pointer">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
-          <div>
-            <h4 className="font-semibold text-foreground">{device.name}</h4>
-            <p className="text-sm text-muted-foreground">{device.patientId}</p>
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${config.bgColor} ${config.color}`}>
+              <TypeIcon className="h-4 w-4" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-foreground">{device.name}</h4>
+              <p className="text-sm text-muted-foreground">{device.patientId}</p>
+            </div>
           </div>
-          <Badge variant={isPatient ? "default" : "secondary"}>
-            {isPatient ? "Patient" : "Provider"}
+          <Badge variant={config.variant} className={device.type === "asset" ? "border-amber-500/50 text-amber-600 dark:text-amber-400" : ""}>
+            {config.label}
           </Badge>
         </div>
 
