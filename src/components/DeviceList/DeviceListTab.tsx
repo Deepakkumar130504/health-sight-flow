@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CircleCheck, Activity, CircleOff, Layers, Radio, Wifi, Battery } from "lucide-react";
+import { CircleCheck, Activity, CircleOff, Layers, Radio, Wifi, Battery, Package } from "lucide-react";
 
 type DeviceStatus = "available" | "in-use" | "scrap";
 
@@ -19,14 +19,19 @@ interface Device {
 const initialDevices: Device[] = [
   { id: "DEV-001", name: "Tracker Alpha", type: "BLE Tag", status: "available", lastSeen: "2 min ago", batteryLevel: 85 },
   { id: "DEV-002", name: "Tracker Beta", type: "BLE Tag", status: "in-use", lastSeen: "Just now", batteryLevel: 92 },
-  { id: "DEV-003", name: "Tracker Gamma", type: "WiFi Tag", status: "available", lastSeen: "1 hour ago", batteryLevel: 45 },
+  { id: "DEV-003", name: "WiFi Tag", type: "WiFi Tag", status: "available", lastSeen: "1 hour ago", batteryLevel: 45 },
   { id: "DEV-004", name: "Tracker Delta", type: "BLE Tag", status: "available", lastSeen: "5 min ago", batteryLevel: 78 },
-  { id: "DEV-005", name: "Tracker Epsilon", type: "WiFi Tag", status: "in-use", lastSeen: "Just now", batteryLevel: 60 },
+  { id: "DEV-005", name: "WiFi Tag", type: "WiFi Tag", status: "in-use", lastSeen: "Just now", batteryLevel: 60 },
   { id: "DEV-006", name: "Tracker Zeta", type: "BLE Tag", status: "available", lastSeen: "3 hours ago", batteryLevel: 20 },
-  { id: "DEV-007", name: "Tracker Eta", type: "WiFi Tag", status: "scrap", lastSeen: "1 week ago", batteryLevel: 0 },
+  { id: "DEV-007", name: "WiFi Tag", type: "WiFi Tag", status: "scrap", lastSeen: "1 week ago", batteryLevel: 0 },
   { id: "DEV-008", name: "Tracker Theta", type: "BLE Tag", status: "available", lastSeen: "10 min ago", batteryLevel: 95 },
-  { id: "DEV-009", name: "Tracker Iota", type: "WiFi Tag", status: "available", lastSeen: "2 days ago", batteryLevel: 15 },
+  { id: "DEV-009", name: "WiFi Tag", type: "WiFi Tag", status: "available", lastSeen: "2 days ago", batteryLevel: 15 },
   { id: "DEV-010", name: "Tracker Kappa", type: "BLE Tag", status: "scrap", lastSeen: "2 weeks ago", batteryLevel: 0 },
+  // Asset Tags
+  { id: "AST-001", name: "Asset Tag A1", type: "Asset Tag", status: "available", lastSeen: "5 min ago", batteryLevel: 88 },
+  { id: "AST-002", name: "Asset Tag A2", type: "Asset Tag", status: "in-use", lastSeen: "Just now", batteryLevel: 75 },
+  { id: "AST-003", name: "Asset Tag A3", type: "Asset Tag", status: "available", lastSeen: "30 min ago", batteryLevel: 62 },
+  { id: "AST-004", name: "Asset Tag A4", type: "Asset Tag", status: "in-use", lastSeen: "2 min ago", batteryLevel: 90 },
 ];
 
 const statusConfig: Record<DeviceStatus, { label: string; color: string; bgColor: string; icon: React.ElementType }> = {
@@ -36,6 +41,7 @@ const statusConfig: Record<DeviceStatus, { label: string; color: string; bgColor
 };
 
 const getDeviceIcon = (type: string) => {
+  if (type.toLowerCase().includes("asset")) return Package;
   return type.toLowerCase().includes("ble") ? Radio : Wifi;
 };
 
