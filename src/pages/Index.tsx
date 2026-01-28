@@ -3,6 +3,7 @@ import Layout from "@/components/Layout";
 import DashboardTab from "@/components/Dashboard/DashboardTab";
 import DeviceListTab from "@/components/DeviceList/DeviceListTab";
 import PatientConfigTab from "@/components/PatientConfig/PatientConfigTab";
+import AssetConfigTab from "@/components/AssetConfig/AssetConfigTab";
 import AnalyticsTab from "@/components/Analytics/AnalyticsTab";
 import ExportTab from "@/components/Export/ExportTab";
 import GatewayConfigTab from "@/components/Settings/GatewayConfigTab";
@@ -19,6 +20,8 @@ const Index = () => {
         return <DeviceListTab />;
       case "patients":
         return <PatientConfigTab />;
+      case "assets":
+        return <AssetConfigTab />;
       case "analytics":
         return <AnalyticsTab />;
       case "export":
