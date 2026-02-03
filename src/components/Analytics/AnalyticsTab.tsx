@@ -1,13 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { 
-  CalendarIcon, 
   Clock, 
   Users, 
   Activity, 
@@ -16,11 +11,16 @@ import {
   BarChart3,
   PieChartIcon,
   Play,
-  Pause
+  Pause,
+  SkipBack,
+  SkipForward,
+  ChevronLeft,
+  ChevronRight,
+  Zap
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, addDays, subDays, startOfDay, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, Area, AreaChart } from "recharts";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from "recharts";
 
 // Mock data generator based on time
 const generateRoomData = (timeIndex: number) => {
@@ -54,39 +54,45 @@ const generatePieData = (roomData: any[]) => {
   ];
 };
 
+// Hour blocks for the visual timeline
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+// Quick preset configurations
+const TIME_PRESETS = [
+  { label: "Morning", start: 6, end: 12, icon: "🌅" },
+  { label: "Afternoon", start: 12, end: 18, icon: "☀️" },
+  { label: "Evening", start: 18, end: 22, icon: "🌆" },
+  { label: "Night", start: 22, end: 6, icon: "🌙" },
+  { label: "Full Day", start: 0, end: 24, icon: "📅" },
+];
+
 export default function AnalyticsTab() {
-  const [fromDate, setFromDate] = useState<Date>(new Date());
-  const [toDate, setToDate] = useState<Date>(() => {
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
-    return date;
-  });
-  const [selectedFromDay, setSelectedFromDay] = useState<Date>(new Date());
-  const [selectedToDay, setSelectedToDay] = useState<Date>(new Date());
-  const [fromTime, setFromTime] = useState({ hours: 8, minutes: 0 });
-  const [toTime, setToTime] = useState({ hours: 18, minutes: 0 });
-  const [sliderValue, setSliderValue] = useState([0]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedHour, setSelectedHour] = useState(new Date().getHours());
+  const [rangeStart, setRangeStart] = useState(6);
+  const [rangeEnd, setRangeEnd] = useState(18);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [activePreset, setActivePreset] = useState<string | null>("Full Day");
+  const timelineRef = useRef<HTMLDivElement>(null);
 
-  // Calculate total 1-hour intervals between from and to time
-  const totalIntervals = useMemo(() => {
-    const fromMinutes = fromTime.hours * 60 + fromTime.minutes;
-    const toMinutes = toTime.hours * 60 + toTime.minutes;
-    return Math.max(0, Math.floor((toMinutes - fromMinutes) / 60));
-  }, [fromTime, toTime]);
+  // Auto-play functionality
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      setSelectedHour(prev => {
+        const next = prev + 1;
+        if (next > rangeEnd) {
+          setIsPlaying(false);
+          return rangeStart;
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isPlaying, rangeStart, rangeEnd]);
 
-  // Calculate current time based on slider position
-  const currentTime = useMemo(() => {
-    const fromMinutes = fromTime.hours * 60 + fromTime.minutes;
-    const currentMinutes = fromMinutes + (sliderValue[0] * 60);
-    return {
-      hours: Math.floor(currentMinutes / 60) % 24,
-      minutes: currentMinutes % 60
-    };
-  }, [sliderValue, fromTime]);
-
-  // Generate data based on current slider position
-  const roomData = useMemo(() => generateRoomData(sliderValue[0]), [sliderValue]);
+  // Generate data based on current hour
+  const roomData = useMemo(() => generateRoomData(selectedHour), [selectedHour]);
   const pieData = useMemo(() => generatePieData(roomData), [roomData]);
   const trendData = useMemo(() => generateTrendData(), []);
 
@@ -96,6 +102,35 @@ export default function AnalyticsTab() {
   const avgOccupancy = Math.round((totalPatients / (totalPatients + 10)) * 100);
 
   const crowdedRooms = roomData.filter(room => room.patients >= 4 || room.nurses >= 3);
+
+  const handlePresetClick = (preset: typeof TIME_PRESETS[0]) => {
+    setActivePreset(preset.label);
+    setRangeStart(preset.start);
+    setRangeEnd(preset.end === 6 ? 24 : preset.end);
+    setSelectedHour(preset.start);
+  };
+
+  const handleHourClick = (hour: number) => {
+    setSelectedHour(hour);
+    setIsPlaying(false);
+  };
+
+  const navigateDate = (direction: "prev" | "next") => {
+    setSelectedDate(prev => direction === "prev" ? subDays(prev, 1) : addDays(prev, 1));
+  };
+
+  const isHourInRange = (hour: number) => {
+    if (rangeEnd > rangeStart) {
+      return hour >= rangeStart && hour <= rangeEnd;
+    }
+    return hour >= rangeStart || hour <= rangeEnd;
+  };
+
+  const getHourIntensity = (hour: number) => {
+    // Simulate activity intensity for visual feedback
+    const intensity = Math.sin((hour - 6) / 3) * 0.5 + 0.5;
+    return Math.max(0.2, Math.min(1, intensity));
+  };
 
   return (
     <div className="p-6 space-y-6 bg-gradient-to-br from-background via-background to-muted/20 min-h-screen">
@@ -191,188 +226,217 @@ export default function AnalyticsTab() {
         </Card>
       </div>
 
-      {/* Timeline Control Card */}
+      {/* Innovative Timeline Control Card */}
       <Card className="shadow-xl border-0 bg-card/80 backdrop-blur-sm overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-primary via-secondary to-warning" />
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
                 <Clock className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-lg">Historical Timeline</CardTitle>
-                <CardDescription>Analyze data across different time periods</CardDescription>
+                <CardTitle className="text-lg">Time Machine</CardTitle>
+                <CardDescription>Navigate through historical data</CardDescription>
               </div>
             </div>
-            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
-              {String(currentTime.hours).padStart(2, '0')}:{String(currentTime.minutes).padStart(2, '0')}
-            </Badge>
+            
+            {/* Live Indicator */}
+            <div className="flex items-center gap-2">
+              {isSameDay(selectedDate, new Date()) && selectedHour === new Date().getHours() ? (
+                <Badge className="bg-success/20 text-success border-success/30 animate-pulse">
+                  <Zap className="h-3 w-3 mr-1" />
+                  LIVE
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-muted/50">
+                  {format(selectedDate, "MMM dd")} • {String(selectedHour).padStart(2, '0')}:00
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
+        
         <CardContent className="space-y-6">
-          {/* Compact Date/Time Range */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal h-11 border-dashed hover:border-primary hover:bg-primary/5",
-                    !fromDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                  <div className="flex flex-col items-start">
-                    <span className="text-[10px] text-muted-foreground">From</span>
-                    <span className="text-xs">{fromDate ? format(fromDate, "MMM dd") : "Pick date"}</span>
-                  </div>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={fromDate}
-                  onSelect={(date) => date && setFromDate(date)}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+          {/* Date Navigator */}
+          <div className="flex items-center justify-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-10 w-10 rounded-full hover:bg-primary/10"
+              onClick={() => navigateDate("prev")}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
             
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal h-11 border-dashed hover:border-primary hover:bg-primary/5",
-                    !toDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                  <div className="flex flex-col items-start">
-                    <span className="text-[10px] text-muted-foreground">To</span>
-                    <span className="text-xs">{toDate ? format(toDate, "MMM dd") : "Pick date"}</span>
-                  </div>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={toDate}
-                  onSelect={(date) => date && setToDate(date)}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start h-11 border-dashed hover:border-secondary hover:bg-secondary/5">
-                  <Clock className="mr-2 h-4 w-4 text-secondary" />
-                  <div className="flex flex-col items-start">
-                    <span className="text-[10px] text-muted-foreground">Start Time</span>
-                    <span className="text-xs">{String(fromTime.hours).padStart(2, '0')}:{String(fromTime.minutes).padStart(2, '0')}</span>
-                  </div>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-4" align="start">
-                <div className="space-y-3">
-                  <Label className="text-xs text-muted-foreground">Select Time</Label>
-                  <div className="flex gap-2">
-                    <select
-                      value={fromTime.hours}
-                      onChange={(e) => setFromTime({ ...fromTime, hours: parseInt(e.target.value) })}
-                      className="flex-1 p-2 text-sm border rounded-md bg-background"
-                    >
-                      {Array.from({ length: 24 }, (_, i) => (
-                        <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
-                      ))}
-                    </select>
-                    <span className="flex items-center text-muted-foreground">:</span>
-                    <select
-                      value={fromTime.minutes}
-                      onChange={(e) => setFromTime({ ...fromTime, minutes: parseInt(e.target.value) })}
-                      className="flex-1 p-2 text-sm border rounded-md bg-background"
-                    >
-                      {[0, 15, 30, 45].map((min) => (
-                        <option key={min} value={min}>{String(min).padStart(2, '0')}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start h-11 border-dashed hover:border-secondary hover:bg-secondary/5">
-                  <Clock className="mr-2 h-4 w-4 text-secondary" />
-                  <div className="flex flex-col items-start">
-                    <span className="text-[10px] text-muted-foreground">End Time</span>
-                    <span className="text-xs">{String(toTime.hours).padStart(2, '0')}:{String(toTime.minutes).padStart(2, '0')}</span>
-                  </div>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-4" align="start">
-                <div className="space-y-3">
-                  <Label className="text-xs text-muted-foreground">Select Time</Label>
-                  <div className="flex gap-2">
-                    <select
-                      value={toTime.hours}
-                      onChange={(e) => setToTime({ ...toTime, hours: parseInt(e.target.value) })}
-                      className="flex-1 p-2 text-sm border rounded-md bg-background"
-                    >
-                      {Array.from({ length: 24 }, (_, i) => (
-                        <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
-                      ))}
-                    </select>
-                    <span className="flex items-center text-muted-foreground">:</span>
-                    <select
-                      value={toTime.minutes}
-                      onChange={(e) => setToTime({ ...toTime, minutes: parseInt(e.target.value) })}
-                      className="flex-1 p-2 text-sm border rounded-md bg-background"
-                    >
-                      {[0, 15, 30, 45].map((min) => (
-                        <option key={min} value={min}>{String(min).padStart(2, '0')}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <div className="flex items-center gap-1 bg-muted/50 rounded-full px-4 py-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "rounded-full px-3 text-xs",
+                  isSameDay(selectedDate, subDays(new Date(), 1)) && "bg-primary/20 text-primary"
+                )}
+                onClick={() => setSelectedDate(subDays(new Date(), 1))}
+              >
+                Yesterday
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "rounded-full px-3 text-xs",
+                  isSameDay(selectedDate, new Date()) && "bg-primary/20 text-primary"
+                )}
+                onClick={() => setSelectedDate(new Date())}
+              >
+                Today
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "rounded-full px-3 text-xs",
+                  isSameDay(selectedDate, addDays(new Date(), 1)) && "bg-primary/20 text-primary"
+                )}
+                onClick={() => setSelectedDate(addDays(new Date(), 1))}
+              >
+                Tomorrow
+              </Button>
+            </div>
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-10 w-10 rounded-full hover:bg-primary/10"
+              onClick={() => navigateDate("next")}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
           </div>
 
-          {/* Enhanced Time Slider */}
-          <div className="bg-muted/30 rounded-xl p-4 space-y-4">
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={() => setIsPlaying(!isPlaying)}
+          {/* Quick Presets */}
+          <div className="flex justify-center gap-2 flex-wrap">
+            {TIME_PRESETS.map(preset => (
+              <Button
+                key={preset.label}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "rounded-full px-4 transition-all duration-300",
+                  activePreset === preset.label 
+                    ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25" 
+                    : "hover:bg-primary/10 hover:border-primary/50"
+                )}
+                onClick={() => handlePresetClick(preset)}
               >
-                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+                <span className="mr-1.5">{preset.icon}</span>
+                {preset.label}
               </Button>
-              <div className="flex-1">
-                <Slider
-                  value={sliderValue}
-                  onValueChange={setSliderValue}
-                  max={totalIntervals}
-                  step={1}
-                  className="w-full"
-                  disabled={totalIntervals === 0}
-                />
+            ))}
+          </div>
+
+          {/* Visual Timeline Scrubber */}
+          <div className="relative pt-8 pb-4">
+            {/* Current Time Indicator */}
+            <div 
+              className="absolute top-0 transition-all duration-300 ease-out z-10"
+              style={{ left: `${(selectedHour / 23) * 100}%`, transform: 'translateX(-50%)' }}
+            >
+              <div className="flex flex-col items-center">
+                <div className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-full shadow-lg shadow-primary/30">
+                  {String(selectedHour).padStart(2, '0')}:00
+                </div>
+                <div className="w-0.5 h-4 bg-primary" />
               </div>
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground px-12">
-              <span>{String(fromTime.hours).padStart(2, '0')}:{String(fromTime.minutes).padStart(2, '0')}</span>
-              <span className="text-primary font-medium">
-                Current: {String(currentTime.hours).padStart(2, '0')}:{String(currentTime.minutes).padStart(2, '0')}
-              </span>
-              <span>{String(toTime.hours).padStart(2, '0')}:{String(toTime.minutes).padStart(2, '0')}</span>
+
+            {/* Hour Blocks */}
+            <div 
+              ref={timelineRef}
+              className="flex gap-0.5 rounded-xl overflow-hidden bg-muted/30 p-1"
+            >
+              {HOURS.map(hour => {
+                const inRange = isHourInRange(hour);
+                const intensity = getHourIntensity(hour);
+                const isSelected = hour === selectedHour;
+                
+                return (
+                  <button
+                    key={hour}
+                    onClick={() => handleHourClick(hour)}
+                    className={cn(
+                      "flex-1 h-12 rounded-lg transition-all duration-200 relative group",
+                      "hover:scale-110 hover:z-10",
+                      isSelected 
+                        ? "bg-primary shadow-lg shadow-primary/40 scale-105 z-10" 
+                        : inRange 
+                          ? "bg-primary/20 hover:bg-primary/40" 
+                          : "bg-muted/50 hover:bg-muted"
+                    )}
+                    style={{
+                      opacity: inRange ? 0.5 + intensity * 0.5 : 0.3,
+                    }}
+                  >
+                    {/* Activity indicator bar */}
+                    <div 
+                      className={cn(
+                        "absolute bottom-0 left-0 right-0 rounded-b-lg transition-all",
+                        isSelected ? "bg-primary-foreground/30" : "bg-primary/30"
+                      )}
+                      style={{ height: `${intensity * 100}%` }}
+                    />
+                    
+                    {/* Hour label on hover */}
+                    <div className={cn(
+                      "absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity",
+                      "text-[10px] font-medium text-muted-foreground whitespace-nowrap"
+                    )}>
+                      {String(hour).padStart(2, '0')}:00
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Time Labels */}
+            <div className="flex justify-between mt-2 px-1">
+              <span className="text-xs text-muted-foreground">00:00</span>
+              <span className="text-xs text-muted-foreground">06:00</span>
+              <span className="text-xs text-muted-foreground">12:00</span>
+              <span className="text-xs text-muted-foreground">18:00</span>
+              <span className="text-xs text-muted-foreground">23:00</span>
+            </div>
+          </div>
+
+          {/* Playback Controls */}
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-full hover:bg-muted"
+              onClick={() => setSelectedHour(prev => Math.max(0, prev - 1))}
+            >
+              <SkipBack className="h-4 w-4" />
+            </Button>
+            
+            <Button 
+              variant="default" 
+              size="icon" 
+              className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/30"
+              onClick={() => setIsPlaying(!isPlaying)}
+            >
+              {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-full hover:bg-muted"
+              onClick={() => setSelectedHour(prev => Math.min(23, prev + 1))}
+            >
+              <SkipForward className="h-4 w-4" />
+            </Button>
           </div>
         </CardContent>
       </Card>
