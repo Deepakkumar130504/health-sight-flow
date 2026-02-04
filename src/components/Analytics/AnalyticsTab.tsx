@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   Users, 
   Activity, 
@@ -15,21 +16,26 @@ import {
   Clock,
   Sparkles,
   Eye,
-  Shield,
-  Wifi
+  Wifi,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  History
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, RadialBarChart, RadialBar } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, RadialBarChart, RadialBar, ComposedChart, Line } from "recharts";
+import { format, subDays, startOfWeek, addDays, isSameDay } from "date-fns";
 
 // Generate dynamic room data
-const generateRoomData = () => {
+const generateRoomData = (dateOffset: number = 0) => {
+  const variation = Math.sin(dateOffset / 2) * 0.3;
   return [
-    { name: "ICU-101", patients: 3, staff: 4, assets: 6, capacity: 85, status: "high" },
-    { name: "ICU-102", patients: 2, staff: 3, assets: 4, capacity: 60, status: "normal" },
-    { name: "General-205", patients: 4, staff: 3, assets: 7, capacity: 75, status: "moderate" },
-    { name: "Ward-A", patients: 5, staff: 4, assets: 8, capacity: 90, status: "critical" },
-    { name: "Ward-B", patients: 2, staff: 2, assets: 5, capacity: 45, status: "low" },
-    { name: "ER-Main", patients: 6, staff: 5, assets: 10, capacity: 95, status: "critical" },
+    { name: "ICU-101", patients: Math.round(3 + variation), staff: Math.round(4 - variation * 0.5), assets: 6, capacity: Math.round(85 + variation * 10), status: "high" },
+    { name: "ICU-102", patients: Math.round(2 + variation * 0.5), staff: 3, assets: 4, capacity: Math.round(60 + variation * 5), status: "normal" },
+    { name: "General-205", patients: Math.round(4 - variation), staff: Math.round(3 + variation * 0.3), assets: 7, capacity: Math.round(75 - variation * 8), status: "moderate" },
+    { name: "Ward-A", patients: Math.round(5 + variation * 0.8), staff: 4, assets: 8, capacity: Math.round(90 + variation * 5), status: "critical" },
+    { name: "Ward-B", patients: 2, staff: 2, assets: 5, capacity: Math.round(45 + variation * 10), status: "low" },
+    { name: "ER-Main", patients: Math.round(6 - variation * 0.5), staff: 5, assets: 10, capacity: Math.round(95 - variation * 3), status: "critical" },
   ];
 };
 
@@ -40,6 +46,33 @@ const generateTrendData = () => {
     patients: Math.round(12 + Math.sin(i / 1.5) * 6),
     staff: Math.round(15 + Math.cos(i / 2) * 4),
     prediction: Math.round(14 + Math.sin((i + 2) / 1.5) * 5),
+  }));
+};
+
+// Generate weekly comparison data
+const generateWeeklyData = () => {
+  return [
+    { day: "Mon", current: 78, previous: 72 },
+    { day: "Tue", current: 82, previous: 75 },
+    { day: "Wed", current: 85, previous: 80 },
+    { day: "Thu", current: 79, previous: 77 },
+    { day: "Fri", current: 88, previous: 82 },
+    { day: "Sat", current: 65, previous: 60 },
+    { day: "Sun", current: 58, previous: 55 },
+  ];
+};
+
+// Generate hourly heatmap data for the week
+const generateHeatmapData = () => {
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const hours = [6, 9, 12, 15, 18, 21];
+  
+  return days.map(day => ({
+    day,
+    data: hours.map(hour => ({
+      hour: `${hour}:00`,
+      value: Math.round(30 + Math.random() * 60),
+    }))
   }));
 };
 
@@ -54,11 +87,27 @@ const getStatusColor = (status: string) => {
   }
 };
 
+const getHeatColor = (value: number) => {
+  if (value >= 80) return "bg-destructive/80";
+  if (value >= 60) return "bg-warning/80";
+  if (value >= 40) return "bg-primary/60";
+  return "bg-secondary/40";
+};
+
 export default function AnalyticsTab() {
   const [activeMetric, setActiveMetric] = useState<"patients" | "staff" | "assets">("patients");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [weekOffset, setWeekOffset] = useState(0);
   
-  const roomData = useMemo(() => generateRoomData(), []);
+  // Calculate week days for the calendar strip
+  const weekStart = startOfWeek(subDays(new Date(), weekOffset * 7), { weekStartsOn: 1 });
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  
+  const dateOffset = Math.floor((new Date().getTime() - selectedDate.getTime()) / (1000 * 60 * 60 * 24));
+  const roomData = useMemo(() => generateRoomData(dateOffset), [dateOffset]);
   const trendData = useMemo(() => generateTrendData(), []);
+  const weeklyData = useMemo(() => generateWeeklyData(), []);
+  const heatmapData = useMemo(() => generateHeatmapData(), []);
   
   const totalPatients = roomData.reduce((sum, room) => sum + room.patients, 0);
   const totalStaff = roomData.reduce((sum, room) => sum + room.staff, 0);
@@ -66,12 +115,6 @@ export default function AnalyticsTab() {
   const avgOccupancy = Math.round(roomData.reduce((sum, room) => sum + room.capacity, 0) / roomData.length);
   
   const criticalRooms = roomData.filter(room => room.status === "critical" || room.status === "high");
-  
-  const pieData = [
-    { name: "Patients", value: totalPatients, fill: "hsl(var(--primary))" },
-    { name: "Staff", value: totalStaff, fill: "hsl(var(--secondary))" },
-    { name: "Assets", value: totalAssets, fill: "hsl(var(--warning))" },
-  ];
 
   const radialData = [
     { name: "Occupancy", value: avgOccupancy, fill: avgOccupancy > 80 ? "hsl(var(--destructive))" : avgOccupancy > 60 ? "hsl(var(--warning))" : "hsl(var(--secondary))" },
@@ -107,38 +150,122 @@ export default function AnalyticsTab() {
     },
   ];
 
+  const isToday = isSameDay(selectedDate, new Date());
+
   return (
     <div className="p-6 space-y-6 bg-gradient-to-br from-background to-muted/30 min-h-screen">
-      {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-secondary/5 to-warning/10 p-8">
+      {/* Hero Header with Date Navigator */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-secondary/5 to-warning/10 p-6">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary/5 rounded-full blur-3xl -ml-24 -mb-24" />
         
-        <div className="relative flex items-start justify-between flex-wrap gap-6">
-          <div className="space-y-2">
+        <div className="relative space-y-4">
+          <div className="flex items-start justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-primary/20 rounded-2xl backdrop-blur-sm">
                 <Sparkles className="h-7 w-7 text-primary" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-foreground">AI Analytics</h1>
-                <p className="text-muted-foreground">Intelligent insights & real-time monitoring</p>
+                <p className="text-muted-foreground">Intelligent insights & historical tracking</p>
               </div>
             </div>
+            
+            <div className="flex items-center gap-3">
+              {isToday ? (
+                <Badge className="bg-success/20 text-success border-success/30 px-4 py-2 text-sm gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                  </span>
+                  Live Data
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="px-4 py-2 text-sm gap-2 bg-muted/50">
+                  <History className="h-3.5 w-3.5" />
+                  Historical View
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Innovative Week Calendar Strip */}
+          <div className="flex items-center gap-2 pt-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-full shrink-0"
+              onClick={() => setWeekOffset(prev => prev + 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <div className="flex-1 flex gap-1 overflow-hidden">
+              {weekDays.map((day, idx) => {
+                const isSelected = isSameDay(day, selectedDate);
+                const isDayToday = isSameDay(day, new Date());
+                const isFuture = day > new Date();
+                
+                return (
+                  <button
+                    key={idx}
+                    disabled={isFuture}
+                    onClick={() => !isFuture && setSelectedDate(day)}
+                    className={cn(
+                      "flex-1 py-3 px-2 rounded-xl transition-all duration-200 flex flex-col items-center gap-1 min-w-[48px]",
+                      isSelected 
+                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-105" 
+                        : isDayToday
+                          ? "bg-primary/20 hover:bg-primary/30"
+                          : isFuture
+                            ? "opacity-40 cursor-not-allowed bg-muted/30"
+                            : "bg-background/60 hover:bg-background/90 backdrop-blur-sm"
+                    )}
+                  >
+                    <span className="text-[10px] font-medium uppercase opacity-70">
+                      {format(day, "EEE")}
+                    </span>
+                    <span className={cn(
+                      "text-lg font-bold",
+                      isSelected ? "text-primary-foreground" : ""
+                    )}>
+                      {format(day, "d")}
+                    </span>
+                    {isDayToday && !isSelected && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-full shrink-0"
+              onClick={() => setWeekOffset(prev => Math.max(0, prev - 1))}
+              disabled={weekOffset === 0}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
           
-          <div className="flex items-center gap-4">
-            <Badge className="bg-success/20 text-success border-success/30 px-4 py-2 text-sm gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-              </span>
-              Live Monitoring
-            </Badge>
-            <Badge variant="outline" className="px-4 py-2 text-sm gap-2">
-              <Clock className="h-3.5 w-3.5" />
-              Updated just now
-            </Badge>
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            <span>{format(selectedDate, "EEEE, MMMM d, yyyy")}</span>
+            {!isToday && (
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="text-primary h-auto p-0 ml-2"
+                onClick={() => {
+                  setSelectedDate(new Date());
+                  setWeekOffset(0);
+                }}
+              >
+                Jump to Today
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -194,7 +321,7 @@ export default function AnalyticsTab() {
         })}
       </div>
 
-      {/* Occupancy Gauge + Quick Stats */}
+      {/* Occupancy Gauge + Trend Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Radial Gauge */}
         <Card className="lg:col-span-1 border-0 shadow-xl bg-card/80 backdrop-blur-sm">
@@ -251,7 +378,9 @@ export default function AnalyticsTab() {
                 </div>
                 <div>
                   <CardTitle className="text-lg">Activity Trends</CardTitle>
-                  <p className="text-sm text-muted-foreground">Today's movement patterns</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isToday ? "Today's movement patterns" : `Data for ${format(selectedDate, "MMM d")}`}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -309,7 +438,7 @@ export default function AnalyticsTab() {
         </Card>
       </div>
 
-      {/* Room Status Grid */}
+      {/* Room Status + Weekly Heatmap */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Room List */}
         <Card className="lg:col-span-2 border-0 shadow-xl bg-card/80 backdrop-blur-sm overflow-hidden">
@@ -369,60 +498,111 @@ export default function AnalyticsTab() {
           </CardContent>
         </Card>
 
-        {/* Distribution Chart */}
+        {/* Weekly Activity Heatmap */}
         <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-primary to-secondary" />
           <CardHeader className="pb-2">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-xl">
-                <Shield className="h-5 w-5 text-primary" />
+                <Clock className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-lg">Distribution</CardTitle>
-                <p className="text-sm text-muted-foreground">Category breakdown</p>
+                <CardTitle className="text-lg">Weekly Heatmap</CardTitle>
+                <p className="text-sm text-muted-foreground">Activity by hour</p>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-col items-center">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={80}
-                  paddingAngle={3}
-                  dataKey="value"
-                  strokeWidth={0}
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '12px'
-                  }} 
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-col gap-2 w-full mt-2">
-              {pieData.map((item) => (
-                <div key={item.name} className="flex items-center justify-between px-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
-                    <span className="text-sm text-muted-foreground">{item.name}</span>
+          <CardContent>
+            <div className="space-y-2">
+              {/* Hour labels */}
+              <div className="flex gap-1 ml-10">
+                {[6, 9, 12, 15, 18, 21].map(hour => (
+                  <div key={hour} className="flex-1 text-[10px] text-muted-foreground text-center">
+                    {hour}:00
                   </div>
-                  <span className="text-sm font-semibold">{item.value}</span>
+                ))}
+              </div>
+              
+              {/* Heatmap grid */}
+              {heatmapData.map((dayData) => (
+                <div key={dayData.day} className="flex items-center gap-1">
+                  <div className="w-8 text-xs text-muted-foreground font-medium">
+                    {dayData.day}
+                  </div>
+                  <div className="flex-1 flex gap-1">
+                    {dayData.data.map((hourData, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "flex-1 h-8 rounded-md transition-all hover:scale-110 cursor-pointer",
+                          getHeatColor(hourData.value)
+                        )}
+                        title={`${dayData.day} ${hourData.hour}: ${hourData.value}%`}
+                      />
+                    ))}
+                  </div>
                 </div>
               ))}
+              
+              {/* Legend */}
+              <div className="flex items-center justify-center gap-3 pt-4 border-t mt-4">
+                <span className="text-xs text-muted-foreground">Low</span>
+                <div className="flex gap-1">
+                  <div className="w-4 h-4 rounded bg-secondary/40" />
+                  <div className="w-4 h-4 rounded bg-primary/60" />
+                  <div className="w-4 h-4 rounded bg-warning/80" />
+                  <div className="w-4 h-4 rounded bg-destructive/80" />
+                </div>
+                <span className="text-xs text-muted-foreground">High</span>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Weekly Comparison Chart */}
+      <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-secondary via-primary to-warning" />
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-secondary/10 rounded-xl">
+              <BarChart3 className="h-5 w-5 text-secondary" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Week-over-Week Comparison</CardTitle>
+              <p className="text-sm text-muted-foreground">Average occupancy compared to previous week</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={200}>
+            <ComposedChart data={weeklyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--card))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '12px',
+                }} 
+              />
+              <Bar dataKey="current" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="This Week" />
+              <Line type="monotone" dataKey="previous" stroke="hsl(var(--muted-foreground))" strokeWidth={2} strokeDasharray="4 4" dot={false} name="Last Week" />
+            </ComposedChart>
+          </ResponsiveContainer>
+          <div className="flex justify-center gap-6 mt-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-primary" />
+              <span className="text-xs text-muted-foreground">This Week</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-0.5 bg-muted-foreground" style={{ borderStyle: 'dashed' }} />
+              <span className="text-xs text-muted-foreground">Previous Week</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Alerts Footer */}
       {criticalRooms.length > 0 && (
